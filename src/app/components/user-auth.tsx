@@ -76,7 +76,7 @@ export function UserAuth({ onSuccess }: UserAuthProps) {
     setOtp(newOtp);
   };
 
-  // Handle Sign Up - creates account without email verification
+  // Handle Sign Up - creates account and immediately sends OTP for login
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -117,8 +117,22 @@ export function UserAuth({ onSuccess }: UserAuthProps) {
         return;
       }
 
-      // Show success message and redirect to login
-      setStep('signup-success');
+      // Account created - now send OTP for login immediately
+      try {
+        await sendLoginOTP(formData.email);
+        setCooldown(60);
+        setMessage(`Account created! OTP sent to ${formData.email}`);
+        setStep('otp');
+      } catch (otpErr: any) {
+        // If OTP fails due to rate limit, show success and let user try login manually
+        if (otpErr.message?.includes('rate limit') || otpErr.message?.includes('security purposes')) {
+          setMessage('Account created! Please wait a moment then login.');
+          setIsLogin(true);
+          setCooldown(60);
+        } else {
+          throw otpErr;
+        }
+      }
     } catch (err: any) {
       console.error('Signup error:', err);
       if (err.message?.includes('rate limit')) {
