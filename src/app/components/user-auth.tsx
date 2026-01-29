@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Mail, Lock, User, ArrowRight, ArrowLeft, KeyRound } from 'lucide-react';
 import { sendLoginOTP, sendSignupOTP, verifyOTP, signUpUser } from '../../lib/supabase';
 import { useAppStore } from '../store/app-store';
@@ -23,6 +23,15 @@ export function UserAuth({ onSuccess }: UserAuthProps) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const [cooldown, setCooldown] = useState(0);
+
+  // Cooldown timer effect
+  useEffect(() => {
+    if (cooldown > 0) {
+      const timer = setTimeout(() => setCooldown(cooldown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [cooldown]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -69,6 +78,13 @@ export function UserAuth({ onSuccess }: UserAuthProps) {
 
   const handleSendOTP = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Check cooldown
+    if (cooldown > 0) {
+      setError(`Please wait ${cooldown} seconds before requesting another code`);
+      return;
+    }
+    
     setLoading(true);
     setError('');
     setMessage('');
@@ -83,6 +99,7 @@ export function UserAuth({ onSuccess }: UserAuthProps) {
         }
         
         await sendLoginOTP(formData.email);
+        setCooldown(60); // Start 60 second cooldown
         setMessage(`OTP sent to ${formData.email}`);
         setStep('otp');
       } else {
@@ -108,12 +125,19 @@ export function UserAuth({ onSuccess }: UserAuthProps) {
         
         // Then send OTP for verification
         await sendSignupOTP(formData.email);
+        setCooldown(60); // Start 60 second cooldown
         setMessage(`Verification code sent to ${formData.email}`);
         setStep('otp');
       }
     } catch (err: any) {
       console.error('Auth error:', err);
-      if (err.message?.includes('User not found') || err.message?.includes('user_not_found')) {
+      // Handle rate limit error
+      if (err.message?.includes('security purposes') || err.message?.includes('after') && err.message?.includes('seconds')) {
+        const match = err.message.match(/(\d+)\s*seconds/);
+        const seconds = match ? parseInt(match[1]) : 60;
+        setCooldown(seconds);
+        setError(`Please wait ${seconds} seconds before requesting another code`);
+      } else if (err.message?.includes('User not found') || err.message?.includes('user_not_found') || err.message?.includes('Signups not allowed')) {
         setError('No account found with this email. Please sign up first.');
       } else if (err.message?.includes('already registered') || err.message?.includes('User already registered')) {
         setError('Email already registered. Please login instead.');
@@ -165,6 +189,12 @@ export function UserAuth({ onSuccess }: UserAuthProps) {
   };
 
   const handleResendOTP = async () => {
+    // Check cooldown
+    if (cooldown > 0) {
+      setError(`Please wait ${cooldown} seconds before requesting another code`);
+      return;
+    }
+    
     setLoading(true);
     setError('');
     setOtp(['', '', '', '', '', '']);
@@ -175,9 +205,18 @@ export function UserAuth({ onSuccess }: UserAuthProps) {
       } else {
         await sendSignupOTP(formData.email);
       }
+      setCooldown(60); // Start 60 second cooldown
       setMessage('New code sent to your email');
     } catch (err: any) {
-      setError(err.message || 'Failed to resend code');
+      // Handle rate limit error
+      if (err.message?.includes('security purposes') || err.message?.includes('after') && err.message?.includes('seconds')) {
+        const match = err.message.match(/(\d+)\s*seconds/);
+        const seconds = match ? parseInt(match[1]) : 60;
+        setCooldown(seconds);
+        setError(`Please wait ${seconds} seconds before requesting another code`);
+      } else {
+        setError(err.message || 'Failed to resend code');
+      }
     } finally {
       setLoading(false);
     }
@@ -410,10 +449,10 @@ export function UserAuth({ onSuccess }: UserAuthProps) {
                   Didn't receive the code?{' '}
                   <button
                     onClick={handleResendOTP}
-                    disabled={loading}
-                    className="text-[var(--crimson)] font-medium hover:underline disabled:opacity-50"
+                    disabled={loading || cooldown > 0}
+                    className="text-[var(--crimson)] font-medium hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Resend
+                    {cooldown > 0 ? `Resend in ${cooldown}s` : 'Resend'}
                   </button>
                 </p>
               </div>
