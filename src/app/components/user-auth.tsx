@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
-import { Mail, Lock, User, ArrowRight, ArrowLeft, KeyRound } from 'lucide-react';
-import { sendLoginOTP, verifyOTP, signUpUser, resendSignupOTP } from '../../lib/supabase';
+import { Mail, Lock, User, ArrowRight, ArrowLeft, KeyRound, CheckCircle } from 'lucide-react';
+import { sendLoginOTP, verifyOTP, supabase } from '../../lib/supabase';
 import { useAppStore } from '../store/app-store';
 
 interface UserAuthProps {
   onSuccess: () => void;
 }
 
-type AuthStep = 'form' | 'otp';
+type AuthStep = 'form' | 'otp' | 'signup-success';
 
 export function UserAuth({ onSuccess }: UserAuthProps) {
   const { setCurrentUser } = useAppStore();
@@ -76,10 +76,67 @@ export function UserAuth({ onSuccess }: UserAuthProps) {
     setOtp(newOtp);
   };
 
-  const handleSendOTP = async (e: React.FormEvent) => {
+  // Handle Sign Up - creates account without email verification
+  const handleSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+
+    if (!formData.name || !formData.email || !formData.password || !formData.confirmPassword) {
+      setError('Please fill in all fields');
+      setLoading(false);
+      return;
+    }
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match');
+      setLoading(false);
+      return;
+    }
+    if (formData.password.length < 6) {
+      setError('Password must be at least 6 characters');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      // Sign up with email confirmation disabled (just create the account)
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          data: { name: formData.name },
+          emailRedirectTo: undefined // No email redirect needed
+        }
+      });
+
+      if (signUpError) throw signUpError;
+
+      if (data.user?.identities?.length === 0) {
+        setError('Email already registered. Please login instead.');
+        setLoading(false);
+        return;
+      }
+
+      // Show success message and redirect to login
+      setStep('signup-success');
+    } catch (err: any) {
+      console.error('Signup error:', err);
+      if (err.message?.includes('rate limit')) {
+        setError('Too many attempts. Please wait a few minutes and try again.');
+      } else if (err.message?.includes('already registered')) {
+        setError('Email already registered. Please login instead.');
+      } else {
+        setError(err.message || 'Failed to create account. Please try again.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle Login - sends OTP to email
+  const handleLoginSendOTP = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Check cooldown
     if (cooldown > 0) {
       setError(`Please wait ${cooldown} seconds before requesting another code`);
       return;
@@ -89,63 +146,29 @@ export function UserAuth({ onSuccess }: UserAuthProps) {
     setError('');
     setMessage('');
 
-    try {
-      if (isLogin) {
-        // Login flow - just need email
-        if (!formData.email) {
-          setError('Please enter your email');
-          setLoading(false);
-          return;
-        }
-        
-        await sendLoginOTP(formData.email);
-        setCooldown(60); // Start 60 second cooldown
-        setMessage(`OTP sent to ${formData.email}`);
-        setStep('otp');
-      } else {
-        // Sign Up flow - need all fields first, then send OTP
-        if (!formData.name || !formData.email || !formData.password || !formData.confirmPassword) {
-          setError('Please fill in all fields');
-          setLoading(false);
-          return;
-        }
-        if (formData.password !== formData.confirmPassword) {
-          setError('Passwords do not match');
-          setLoading(false);
-          return;
-        }
-        if (formData.password.length < 6) {
-          setError('Password must be at least 6 characters');
-          setLoading(false);
-          return;
-        }
+    if (!formData.email) {
+      setError('Please enter your email');
+      setLoading(false);
+      return;
+    }
 
-        // Create the account with password - Supabase will send confirmation OTP automatically
-        const { user } = await signUpUser(formData.email, formData.password, formData.name);
-        
-        if (user?.identities?.length === 0) {
-          // User already exists
-          setError('Email already registered. Please login instead.');
-          setLoading(false);
-          return;
-        }
-        
-        setCooldown(60); // Start 60 second cooldown
-        setMessage(`Verification code sent to ${formData.email}`);
-        setStep('otp');
-      }
+    try {
+      await sendLoginOTP(formData.email);
+      setCooldown(60);
+      setMessage(`OTP sent to ${formData.email}`);
+      setStep('otp');
     } catch (err: any) {
-      console.error('Auth error:', err);
-      // Handle rate limit error
-      if (err.message?.includes('security purposes') || err.message?.includes('after') && err.message?.includes('seconds')) {
+      console.error('Login OTP error:', err);
+      if (err.message?.includes('security purposes') || (err.message?.includes('after') && err.message?.includes('seconds'))) {
         const match = err.message.match(/(\d+)\s*seconds/);
         const seconds = match ? parseInt(match[1]) : 60;
         setCooldown(seconds);
         setError(`Please wait ${seconds} seconds before requesting another code`);
-      } else if (err.message?.includes('User not found') || err.message?.includes('user_not_found') || err.message?.includes('Signups not allowed')) {
+      } else if (err.message?.includes('rate limit')) {
+        setCooldown(60);
+        setError('Too many attempts. Please wait a minute and try again.');
+      } else if (err.message?.includes('Signups not allowed') || err.message?.includes('user_not_found')) {
         setError('No account found with this email. Please sign up first.');
-      } else if (err.message?.includes('already registered') || err.message?.includes('User already registered')) {
-        setError('Email already registered. Please login instead.');
       } else {
         setError(err.message || 'Failed to send OTP. Please try again.');
       }
@@ -154,6 +177,7 @@ export function UserAuth({ onSuccess }: UserAuthProps) {
     }
   };
 
+  // Verify OTP for login
   const handleVerifyOTP = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -170,7 +194,6 @@ export function UserAuth({ onSuccess }: UserAuthProps) {
       const { user } = await verifyOTP(formData.email, otpCode);
       
       if (user) {
-        // Set the current user in app store
         setCurrentUser({
           id: user.id,
           email: user.email || formData.email,
@@ -194,7 +217,6 @@ export function UserAuth({ onSuccess }: UserAuthProps) {
   };
 
   const handleResendOTP = async () => {
-    // Check cooldown
     if (cooldown > 0) {
       setError(`Please wait ${cooldown} seconds before requesting another code`);
       return;
@@ -205,21 +227,18 @@ export function UserAuth({ onSuccess }: UserAuthProps) {
     setOtp(['', '', '', '', '', '']);
 
     try {
-      if (isLogin) {
-        await sendLoginOTP(formData.email);
-      } else {
-        // Use resend for signup confirmation
-        await resendSignupOTP(formData.email);
-      }
-      setCooldown(60); // Start 60 second cooldown
+      await sendLoginOTP(formData.email);
+      setCooldown(60);
       setMessage('New code sent to your email');
     } catch (err: any) {
-      // Handle rate limit error
-      if (err.message?.includes('security purposes') || err.message?.includes('after') && err.message?.includes('seconds')) {
+      if (err.message?.includes('security purposes') || (err.message?.includes('after') && err.message?.includes('seconds'))) {
         const match = err.message.match(/(\d+)\s*seconds/);
         const seconds = match ? parseInt(match[1]) : 60;
         setCooldown(seconds);
         setError(`Please wait ${seconds} seconds before requesting another code`);
+      } else if (err.message?.includes('rate limit')) {
+        setCooldown(60);
+        setError('Too many attempts. Please wait a minute.');
       } else {
         setError(err.message || 'Failed to resend code');
       }
@@ -235,6 +254,14 @@ export function UserAuth({ onSuccess }: UserAuthProps) {
     setMessage('');
   };
 
+  const switchToLogin = () => {
+    setIsLogin(true);
+    setStep('form');
+    setError('');
+    setMessage('');
+    setFormData({ name: '', email: '', password: '', confirmPassword: '' });
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-[var(--cream)] to-gray-100 flex items-center justify-center px-4">
       <div className="w-full max-w-md">
@@ -246,7 +273,31 @@ export function UserAuth({ onSuccess }: UserAuthProps) {
 
         {/* Auth Card */}
         <div className="bg-white rounded-lg shadow-lg p-8 border border-gray-200">
-          {step === 'form' ? (
+          
+          {/* Signup Success Step */}
+          {step === 'signup-success' && (
+            <div className="text-center">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <CheckCircle className="text-green-600" size={32} />
+              </div>
+              <h2 className="font-[var(--font-serif)] text-2xl text-[var(--charcoal)] mb-2">
+                Account Created!
+              </h2>
+              <p className="text-gray-600 text-sm mb-6">
+                Your account has been created successfully. Please login with your email to continue.
+              </p>
+              <button
+                onClick={switchToLogin}
+                className="w-full h-12 bg-[var(--crimson)] text-white font-medium rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+              >
+                Go to Login
+                <ArrowRight size={18} />
+              </button>
+            </div>
+          )}
+
+          {/* Form Step */}
+          {step === 'form' && (
             <>
               {/* Tab Switch */}
               <div className="flex gap-2 mb-8 bg-gray-50 p-1 rounded-lg">
@@ -289,7 +340,7 @@ export function UserAuth({ onSuccess }: UserAuthProps) {
               <p className="text-gray-600 text-sm mb-6">
                 {isLogin 
                   ? 'Enter your email to receive a login code' 
-                  : 'Join us to access your personal shopping history'}
+                  : 'Create your account with email and password'}
               </p>
 
               {/* Error Message */}
@@ -299,10 +350,45 @@ export function UserAuth({ onSuccess }: UserAuthProps) {
                 </div>
               )}
 
-              {/* Form */}
-              <form onSubmit={handleSendOTP} className="space-y-4">
-                {/* Name Field (Sign Up Only) */}
-                {!isLogin && (
+              {/* Success Message */}
+              {message && (
+                <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded">
+                  <p className="text-sm text-green-600">{message}</p>
+                </div>
+              )}
+
+              {/* Login Form - Email only */}
+              {isLogin && (
+                <form onSubmit={handleLoginSendOTP} className="space-y-4">
+                  <div>
+                    <label className="block text-sm text-gray-700 mb-2">Email Address</label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                      <input
+                        type="email"
+                        name="email"
+                        value={formData.email}
+                        onChange={handleChange}
+                        placeholder="you@example.com"
+                        className="w-full h-12 pl-10 pr-4 border border-gray-300 rounded-lg focus:outline-none focus:border-[var(--crimson)] text-sm"
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={loading || cooldown > 0}
+                    className="w-full h-12 bg-[var(--crimson)] text-white font-medium rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity flex items-center justify-center gap-2 mt-6"
+                  >
+                    {loading ? 'Sending...' : cooldown > 0 ? `Wait ${cooldown}s` : 'Send Login Code'}
+                    <ArrowRight size={18} />
+                  </button>
+                </form>
+              )}
+
+              {/* Sign Up Form - Full form */}
+              {!isLogin && (
+                <form onSubmit={handleSignUp} className="space-y-4">
                   <div>
                     <label className="block text-sm text-gray-700 mb-2">Full Name</label>
                     <div className="relative">
@@ -317,73 +403,68 @@ export function UserAuth({ onSuccess }: UserAuthProps) {
                       />
                     </div>
                   </div>
-                )}
 
-                {/* Email Field */}
-                <div>
-                  <label className="block text-sm text-gray-700 mb-2">Email Address</label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                    <input
-                      type="email"
-                      name="email"
-                      value={formData.email}
-                      onChange={handleChange}
-                      placeholder="you@example.com"
-                      className="w-full h-12 pl-10 pr-4 border border-gray-300 rounded-lg focus:outline-none focus:border-[var(--crimson)] text-sm"
-                    />
+                  <div>
+                    <label className="block text-sm text-gray-700 mb-2">Email Address</label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                      <input
+                        type="email"
+                        name="email"
+                        value={formData.email}
+                        onChange={handleChange}
+                        placeholder="you@example.com"
+                        className="w-full h-12 pl-10 pr-4 border border-gray-300 rounded-lg focus:outline-none focus:border-[var(--crimson)] text-sm"
+                      />
+                    </div>
                   </div>
-                </div>
 
-                {/* Password Fields (Sign Up Only) */}
-                {!isLogin && (
-                  <>
-                    <div>
-                      <label className="block text-sm text-gray-700 mb-2">Password</label>
-                      <div className="relative">
-                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                        <input
-                          type="password"
-                          name="password"
-                          value={formData.password}
-                          onChange={handleChange}
-                          placeholder="Min 6 characters"
-                          className="w-full h-12 pl-10 pr-4 border border-gray-300 rounded-lg focus:outline-none focus:border-[var(--crimson)] text-sm"
-                        />
-                      </div>
+                  <div>
+                    <label className="block text-sm text-gray-700 mb-2">Password</label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                      <input
+                        type="password"
+                        name="password"
+                        value={formData.password}
+                        onChange={handleChange}
+                        placeholder="Min 6 characters"
+                        className="w-full h-12 pl-10 pr-4 border border-gray-300 rounded-lg focus:outline-none focus:border-[var(--crimson)] text-sm"
+                      />
                     </div>
+                  </div>
 
-                    <div>
-                      <label className="block text-sm text-gray-700 mb-2">Confirm Password</label>
-                      <div className="relative">
-                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                        <input
-                          type="password"
-                          name="confirmPassword"
-                          value={formData.confirmPassword}
-                          onChange={handleChange}
-                          placeholder="••••••••"
-                          className="w-full h-12 pl-10 pr-4 border border-gray-300 rounded-lg focus:outline-none focus:border-[var(--crimson)] text-sm"
-                        />
-                      </div>
+                  <div>
+                    <label className="block text-sm text-gray-700 mb-2">Confirm Password</label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                      <input
+                        type="password"
+                        name="confirmPassword"
+                        value={formData.confirmPassword}
+                        onChange={handleChange}
+                        placeholder="••••••••"
+                        className="w-full h-12 pl-10 pr-4 border border-gray-300 rounded-lg focus:outline-none focus:border-[var(--crimson)] text-sm"
+                      />
                     </div>
-                  </>
-                )}
+                  </div>
 
-                {/* Submit Button */}
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full h-12 bg-[var(--crimson)] text-white font-medium rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity flex items-center justify-center gap-2 mt-6"
-                >
-                  {loading ? 'Sending...' : isLogin ? 'Send Login Code' : 'Create Account & Verify'}
-                  <ArrowRight size={18} />
-                </button>
-              </form>
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full h-12 bg-[var(--crimson)] text-white font-medium rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity flex items-center justify-center gap-2 mt-6"
+                  >
+                    {loading ? 'Creating Account...' : 'Create Account'}
+                    <ArrowRight size={18} />
+                  </button>
+                </form>
+              )}
             </>
-          ) : (
+          )}
+
+          {/* OTP Step */}
+          {step === 'otp' && (
             <>
-              {/* OTP Verification Step */}
               <button
                 onClick={handleBack}
                 className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6 text-sm"
@@ -444,7 +525,7 @@ export function UserAuth({ onSuccess }: UserAuthProps) {
                   disabled={loading || otp.join('').length !== 6}
                   className="w-full h-12 bg-[var(--crimson)] text-white font-medium rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity flex items-center justify-center gap-2"
                 >
-                  {loading ? 'Verifying...' : 'Verify & Continue'}
+                  {loading ? 'Verifying...' : 'Verify & Login'}
                   <ArrowRight size={18} />
                 </button>
               </form>
@@ -468,8 +549,10 @@ export function UserAuth({ onSuccess }: UserAuthProps) {
 
         {/* Footer */}
         <p className="text-center text-xs text-gray-600 mt-6">
-          {step === 'form' 
-            ? 'Each login creates a separate account with your own order history and fit profile'
+          {step === 'form' && isLogin
+            ? 'A secure code will be sent to your email'
+            : step === 'form' && !isLogin
+            ? 'Create your account, then login with OTP'
             : 'Check your spam folder if you don\'t see the email'}
         </p>
       </div>
