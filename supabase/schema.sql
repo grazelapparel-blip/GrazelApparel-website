@@ -134,20 +134,20 @@ CREATE TABLE IF NOT EXISTS reviews (
 -- INDEXES FOR PERFORMANCE
 -- ============================================
 
-CREATE INDEX idx_users_email ON users(email);
-CREATE INDEX idx_orders_user_id ON orders(user_id);
-CREATE INDEX idx_orders_status ON orders(status);
-CREATE INDEX idx_orders_created_at ON orders(created_at);
-CREATE INDEX idx_order_items_order_id ON order_items(order_id);
-CREATE INDEX idx_order_items_product_id ON order_items(product_id);
-CREATE INDEX idx_cart_items_user_id ON cart_items(user_id);
-CREATE INDEX idx_products_category ON products(category);
-CREATE INDEX idx_products_is_active ON products(is_active);
-CREATE INDEX idx_fit_profiles_user_id ON fit_profiles(user_id);
-CREATE INDEX idx_wishlist_user_id ON wishlist_items(user_id);
-CREATE INDEX idx_reviews_product_id ON reviews(product_id);
-CREATE INDEX idx_reviews_user_id ON reviews(user_id);
-CREATE INDEX idx_user_addresses_user_id ON user_addresses(user_id);
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE INDEX IF NOT EXISTS idx_orders_user_id ON orders(user_id);
+CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
+CREATE INDEX IF NOT EXISTS idx_orders_created_at ON orders(created_at);
+CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON order_items(order_id);
+CREATE INDEX IF NOT EXISTS idx_order_items_product_id ON order_items(product_id);
+CREATE INDEX IF NOT EXISTS idx_cart_items_user_id ON cart_items(user_id);
+CREATE INDEX IF NOT EXISTS idx_products_category ON products(category);
+CREATE INDEX IF NOT EXISTS idx_products_is_active ON products(is_active);
+CREATE INDEX IF NOT EXISTS idx_fit_profiles_user_id ON fit_profiles(user_id);
+CREATE INDEX IF NOT EXISTS idx_wishlist_user_id ON wishlist_items(user_id);
+CREATE INDEX IF NOT EXISTS idx_reviews_product_id ON reviews(product_id);
+CREATE INDEX IF NOT EXISTS idx_reviews_user_id ON reviews(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_addresses_user_id ON user_addresses(user_id);
 
 -- ============================================
 -- ROW LEVEL SECURITY POLICIES
@@ -162,6 +162,34 @@ ALTER TABLE cart_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE fit_profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE wishlist_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE reviews ENABLE ROW LEVEL SECURITY;
+
+-- Drop existing policies if they exist
+DROP POLICY IF EXISTS "Users can read own profile" ON users;
+DROP POLICY IF EXISTS "Users can update own profile" ON users;
+DROP POLICY IF EXISTS "Users can view own addresses" ON user_addresses;
+DROP POLICY IF EXISTS "Users can insert own addresses" ON user_addresses;
+DROP POLICY IF EXISTS "Users can update own addresses" ON user_addresses;
+DROP POLICY IF EXISTS "Users can delete own addresses" ON user_addresses;
+DROP POLICY IF EXISTS "Anyone can read products" ON products;
+DROP POLICY IF EXISTS "Users can read own orders" ON orders;
+DROP POLICY IF EXISTS "Users can insert own orders" ON orders;
+DROP POLICY IF EXISTS "Users can update own orders" ON orders;
+DROP POLICY IF EXISTS "Users can read own order items" ON order_items;
+DROP POLICY IF EXISTS "Users can read own cart" ON cart_items;
+DROP POLICY IF EXISTS "Users can insert to own cart" ON cart_items;
+DROP POLICY IF EXISTS "Users can update own cart" ON cart_items;
+DROP POLICY IF EXISTS "Users can delete own cart items" ON cart_items;
+DROP POLICY IF EXISTS "Users can read own fit profile" ON fit_profiles;
+DROP POLICY IF EXISTS "Users can insert own fit profile" ON fit_profiles;
+DROP POLICY IF EXISTS "Users can update own fit profile" ON fit_profiles;
+DROP POLICY IF EXISTS "Users can delete own fit profile" ON fit_profiles;
+DROP POLICY IF EXISTS "Users can read own wishlist" ON wishlist_items;
+DROP POLICY IF EXISTS "Users can insert to own wishlist" ON wishlist_items;
+DROP POLICY IF EXISTS "Users can delete from own wishlist" ON wishlist_items;
+DROP POLICY IF EXISTS "Anyone can read reviews" ON reviews;
+DROP POLICY IF EXISTS "Users can insert own reviews" ON reviews;
+DROP POLICY IF EXISTS "Users can update own reviews" ON reviews;
+DROP POLICY IF EXISTS "Users can delete own reviews" ON reviews;
 
 -- Users can read their own profile
 CREATE POLICY "Users can read own profile"
@@ -302,6 +330,12 @@ CREATE POLICY "Users can update own reviews"
   FOR UPDATE
   USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can delete own reviews" ON reviews;
+CREATE POLICY "Users can delete own reviews"
+  ON reviews
+  FOR DELETE
+  USING (auth.uid() = user_id);
+
 -- ============================================
 -- FUNCTIONS AND TRIGGERS
 -- ============================================
@@ -326,6 +360,9 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- Drop trigger if exists before creating
+DROP TRIGGER IF EXISTS orders_set_order_number ON orders;
+
 CREATE TRIGGER orders_set_order_number
   BEFORE INSERT ON orders
   FOR EACH ROW
@@ -339,6 +376,9 @@ BEGIN
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
+
+-- Drop trigger if exists before creating
+DROP TRIGGER IF EXISTS orders_update_timestamp ON orders;
 
 CREATE TRIGGER orders_update_timestamp
   BEFORE UPDATE ON orders
@@ -355,8 +395,11 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+-- Drop trigger if exists before creating
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+
 -- Trigger for new user signup
-CREATE OR REPLACE TRIGGER on_auth_user_created
+CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
@@ -448,3 +491,18 @@ VALUES
     ARRAY['One Size']
   )
 ON CONFLICT (name) DO NOTHING;
+
+-- Newsletter Subscribers Table
+CREATE TABLE IF NOT EXISTS newsletter_subscribers (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  email TEXT NOT NULL UNIQUE,
+  is_active BOOLEAN DEFAULT TRUE,
+  subscribed_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  unsubscribed_at TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create index for email lookups
+CREATE INDEX IF NOT EXISTS idx_newsletter_subscribers_email ON newsletter_subscribers(email);
+CREATE INDEX IF NOT EXISTS idx_newsletter_subscribers_is_active ON newsletter_subscribers(is_active);

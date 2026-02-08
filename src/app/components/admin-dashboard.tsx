@@ -143,7 +143,7 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
     setShowProductModal(true);
   };
 
-  const handleSaveProduct = () => {
+  const handleSaveProduct = async () => {
     const productData = {
       name: productForm.name,
       price: Number(productForm.price),
@@ -155,16 +155,16 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
     };
 
     if (editingProduct) {
-      updateProduct(editingProduct.id, productData);
+      await updateProduct(editingProduct.id, productData);
     } else {
-      addProduct(productData);
+      await addProduct(productData);
     }
     setShowProductModal(false);
   };
 
-  const handleDeleteProduct = (id: string) => {
+  const handleDeleteProduct = async (id: string) => {
     if (confirm('Are you sure you want to delete this product?')) {
-      deleteProduct(id);
+      await deleteProduct(id);
     }
   };
 

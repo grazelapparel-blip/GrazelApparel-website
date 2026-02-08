@@ -1,13 +1,13 @@
-import { useState, useEffect } from 'react';
-import { Mail, Lock, User, ArrowRight, ArrowLeft, KeyRound, CheckCircle } from 'lucide-react';
-import { sendLoginOTP, verifyOTP, supabase } from '../../lib/supabase';
+import { useState } from 'react';
+import { Mail, Lock, User, ArrowRight, CheckCircle } from 'lucide-react';
+import { supabase } from '../../lib/supabase';
 import { useAppStore } from '../store/app-store';
 
 interface UserAuthProps {
   onSuccess: () => void;
 }
 
-type AuthStep = 'form' | 'otp' | 'signup-success';
+type AuthStep = 'form' | 'signup-success';
 
 export function UserAuth({ onSuccess }: UserAuthProps) {
   const { setCurrentUser } = useAppStore();
@@ -19,19 +19,9 @@ export function UserAuth({ onSuccess }: UserAuthProps) {
     password: '',
     confirmPassword: ''
   });
-  const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
-  const [cooldown, setCooldown] = useState(0);
-
-  // Cooldown timer effect
-  useEffect(() => {
-    if (cooldown > 0) {
-      const timer = setTimeout(() => setCooldown(cooldown - 1), 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [cooldown]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -39,44 +29,7 @@ export function UserAuth({ onSuccess }: UserAuthProps) {
     setError('');
   };
 
-  const handleOtpChange = (index: number, value: string) => {
-    if (value.length > 1) {
-      value = value.slice(-1);
-    }
-    if (!/^\d*$/.test(value)) return;
-
-    const newOtp = [...otp];
-    newOtp[index] = value;
-    setOtp(newOtp);
-    setError('');
-
-    // Auto-focus next input
-    if (value && index < 5) {
-      const nextInput = document.getElementById(`otp-${index + 1}`);
-      nextInput?.focus();
-    }
-  };
-
-  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent) => {
-    if (e.key === 'Backspace' && !otp[index] && index > 0) {
-      const prevInput = document.getElementById(`otp-${index - 1}`);
-      prevInput?.focus();
-    }
-  };
-
-  const handleOtpPaste = (e: React.ClipboardEvent) => {
-    e.preventDefault();
-    const pastedData = e.clipboardData.getData('text').slice(0, 6);
-    if (!/^\d+$/.test(pastedData)) return;
-    
-    const newOtp = [...otp];
-    for (let i = 0; i < pastedData.length; i++) {
-      newOtp[i] = pastedData[i];
-    }
-    setOtp(newOtp);
-  };
-
-  // Handle Sign Up - creates account and immediately sends OTP for login
+  // Handle Sign Up - creates account
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -99,13 +52,11 @@ export function UserAuth({ onSuccess }: UserAuthProps) {
     }
 
     try {
-      // Sign up with email confirmation disabled (just create the account)
       const { data, error: signUpError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
         options: {
-          data: { name: formData.name },
-          emailRedirectTo: undefined // No email redirect needed
+          data: { name: formData.name }
         }
       });
 
@@ -117,22 +68,8 @@ export function UserAuth({ onSuccess }: UserAuthProps) {
         return;
       }
 
-      // Account created - now send OTP for login immediately
-      try {
-        await sendLoginOTP(formData.email);
-        setCooldown(60);
-        setMessage(`Account created! OTP sent to ${formData.email}`);
-        setStep('otp');
-      } catch (otpErr: any) {
-        // If OTP fails due to rate limit, show success and let user try login manually
-        if (otpErr.message?.includes('rate limit') || otpErr.message?.includes('security purposes')) {
-          setMessage('Account created! Please wait a moment then login.');
-          setIsLogin(true);
-          setCooldown(60);
-        } else {
-          throw otpErr;
-        }
-      }
+      // Account created - show success and prompt to login
+      setStep('signup-success');
     } catch (err: any) {
       console.error('Signup error:', err);
       if (err.message?.includes('rate limit')) {
@@ -147,125 +84,50 @@ export function UserAuth({ onSuccess }: UserAuthProps) {
     }
   };
 
-  // Handle Login - sends OTP to email
-  const handleLoginSendOTP = async (e: React.FormEvent) => {
+  // Handle Login - with email and password
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (cooldown > 0) {
-      setError(`Please wait ${cooldown} seconds before requesting another code`);
-      return;
-    }
-    
     setLoading(true);
     setError('');
     setMessage('');
 
-    if (!formData.email) {
-      setError('Please enter your email');
+    if (!formData.email || !formData.password) {
+      setError('Please enter email and password');
       setLoading(false);
       return;
     }
 
     try {
-      await sendLoginOTP(formData.email);
-      setCooldown(60);
-      setMessage(`OTP sent to ${formData.email}`);
-      setStep('otp');
-    } catch (err: any) {
-      console.error('Login OTP error:', err);
-      if (err.message?.includes('security purposes') || (err.message?.includes('after') && err.message?.includes('seconds'))) {
-        const match = err.message.match(/(\d+)\s*seconds/);
-        const seconds = match ? parseInt(match[1]) : 60;
-        setCooldown(seconds);
-        setError(`Please wait ${seconds} seconds before requesting another code`);
-      } else if (err.message?.includes('rate limit')) {
-        setCooldown(60);
-        setError('Too many attempts. Please wait a minute and try again.');
-      } else if (err.message?.includes('Signups not allowed') || err.message?.includes('user_not_found')) {
-        setError('No account found with this email. Please sign up first.');
-      } else {
-        setError(err.message || 'Failed to send OTP. Please try again.');
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+        email: formData.email,
+        password: formData.password
+      });
 
-  // Verify OTP for login
-  const handleVerifyOTP = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
+      if (signInError) throw signInError;
 
-    const otpCode = otp.join('');
-    if (otpCode.length !== 6) {
-      setError('Please enter the complete 6-digit code');
-      setLoading(false);
-      return;
-    }
-
-    try {
-      const { user } = await verifyOTP(formData.email, otpCode);
-      
-      if (user) {
+      if (data.user) {
         setCurrentUser({
-          id: user.id,
-          email: user.email || formData.email,
-          name: user.user_metadata?.name || formData.name || 'User',
+          id: data.user.id,
+          email: data.user.email || formData.email,
+          name: data.user.user_metadata?.name || formData.name || 'User',
           joinedDate: new Date().toISOString().split('T')[0]
         });
         onSuccess();
       } else {
-        setError('Verification failed. Please try again.');
+        setError('Login failed. Please try again.');
       }
     } catch (err: any) {
-      console.error('OTP verification error:', err);
-      if (err.message?.includes('Invalid') || err.message?.includes('expired')) {
-        setError('Invalid or expired code. Please try again.');
+      console.error('Login error:', err);
+      if (err.message?.includes('Invalid login credentials')) {
+        setError('Invalid email or password');
+      } else if (err.message?.includes('Email not confirmed')) {
+        setError('Please check your email to confirm your account first.');
       } else {
-        setError(err.message || 'Verification failed. Please try again.');
+        setError(err.message || 'Login failed. Please try again.');
       }
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleResendOTP = async () => {
-    if (cooldown > 0) {
-      setError(`Please wait ${cooldown} seconds before requesting another code`);
-      return;
-    }
-    
-    setLoading(true);
-    setError('');
-    setOtp(['', '', '', '', '', '']);
-
-    try {
-      await sendLoginOTP(formData.email);
-      setCooldown(60);
-      setMessage('New code sent to your email');
-    } catch (err: any) {
-      if (err.message?.includes('security purposes') || (err.message?.includes('after') && err.message?.includes('seconds'))) {
-        const match = err.message.match(/(\d+)\s*seconds/);
-        const seconds = match ? parseInt(match[1]) : 60;
-        setCooldown(seconds);
-        setError(`Please wait ${seconds} seconds before requesting another code`);
-      } else if (err.message?.includes('rate limit')) {
-        setCooldown(60);
-        setError('Too many attempts. Please wait a minute.');
-      } else {
-        setError(err.message || 'Failed to resend code');
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleBack = () => {
-    setStep('form');
-    setOtp(['', '', '', '', '', '']);
-    setError('');
-    setMessage('');
   };
 
   const switchToLogin = () => {
@@ -273,7 +135,8 @@ export function UserAuth({ onSuccess }: UserAuthProps) {
     setStep('form');
     setError('');
     setMessage('');
-    setFormData({ name: '', email: '', password: '', confirmPassword: '' });
+    // Keep email for login
+    setFormData(prev => ({ ...prev, name: '', confirmPassword: '' }));
   };
 
   return (
@@ -298,7 +161,7 @@ export function UserAuth({ onSuccess }: UserAuthProps) {
                 Account Created!
               </h2>
               <p className="text-gray-600 text-sm mb-6">
-                Your account has been created successfully. Please login with your email to continue.
+                Your account has been created successfully. Please login with your email and password.
               </p>
               <button
                 onClick={switchToLogin}
@@ -353,8 +216,8 @@ export function UserAuth({ onSuccess }: UserAuthProps) {
               </h2>
               <p className="text-gray-600 text-sm mb-6">
                 {isLogin 
-                  ? 'Enter your email to receive a login code' 
-                  : 'Create your account with email and password'}
+                  ? 'Sign in with your email and password' 
+                  : 'Create your account to start shopping'}
               </p>
 
               {/* Error Message */}
@@ -371,9 +234,9 @@ export function UserAuth({ onSuccess }: UserAuthProps) {
                 </div>
               )}
 
-              {/* Login Form - Email only */}
+              {/* Login Form */}
               {isLogin && (
-                <form onSubmit={handleLoginSendOTP} className="space-y-4">
+                <form onSubmit={handleLogin} className="space-y-4">
                   <div>
                     <label className="block text-sm text-gray-700 mb-2">Email Address</label>
                     <div className="relative">
@@ -389,18 +252,33 @@ export function UserAuth({ onSuccess }: UserAuthProps) {
                     </div>
                   </div>
 
+                  <div>
+                    <label className="block text-sm text-gray-700 mb-2">Password</label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                      <input
+                        type="password"
+                        name="password"
+                        value={formData.password}
+                        onChange={handleChange}
+                        placeholder="••••••••"
+                        className="w-full h-12 pl-10 pr-4 border border-gray-300 rounded-lg focus:outline-none focus:border-[var(--crimson)] text-sm"
+                      />
+                    </div>
+                  </div>
+
                   <button
                     type="submit"
-                    disabled={loading || cooldown > 0}
+                    disabled={loading}
                     className="w-full h-12 bg-[var(--crimson)] text-white font-medium rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity flex items-center justify-center gap-2 mt-6"
                   >
-                    {loading ? 'Sending...' : cooldown > 0 ? `Wait ${cooldown}s` : 'Send Login Code'}
+                    {loading ? 'Signing in...' : 'Sign In'}
                     <ArrowRight size={18} />
                   </button>
                 </form>
               )}
 
-              {/* Sign Up Form - Full form */}
+              {/* Sign Up Form */}
               {!isLogin && (
                 <form onSubmit={handleSignUp} className="space-y-4">
                   <div>
@@ -475,99 +353,11 @@ export function UserAuth({ onSuccess }: UserAuthProps) {
               )}
             </>
           )}
-
-          {/* OTP Step */}
-          {step === 'otp' && (
-            <>
-              <button
-                onClick={handleBack}
-                className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6 text-sm"
-              >
-                <ArrowLeft size={16} />
-                Back
-              </button>
-
-              <div className="text-center mb-6">
-                <div className="w-16 h-16 bg-[var(--crimson)]/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <KeyRound className="text-[var(--crimson)]" size={28} />
-                </div>
-                <h2 className="font-[var(--font-serif)] text-2xl text-[var(--charcoal)] mb-2">
-                  Enter Verification Code
-                </h2>
-                <p className="text-gray-600 text-sm">
-                  We sent a 6-digit code to<br />
-                  <span className="font-medium text-[var(--charcoal)]">{formData.email}</span>
-                </p>
-              </div>
-
-              {/* Success Message */}
-              {message && (
-                <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded">
-                  <p className="text-sm text-green-600">{message}</p>
-                </div>
-              )}
-
-              {/* Error Message */}
-              {error && (
-                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded">
-                  <p className="text-sm text-red-600">{error}</p>
-                </div>
-              )}
-
-              {/* OTP Input */}
-              <form onSubmit={handleVerifyOTP}>
-                <div className="flex gap-2 justify-center mb-6">
-                  {otp.map((digit, index) => (
-                    <input
-                      key={index}
-                      id={`otp-${index}`}
-                      type="text"
-                      inputMode="numeric"
-                      maxLength={1}
-                      value={digit}
-                      onChange={(e) => handleOtpChange(index, e.target.value)}
-                      onKeyDown={(e) => handleOtpKeyDown(index, e)}
-                      onPaste={index === 0 ? handleOtpPaste : undefined}
-                      className="w-12 h-14 text-center text-xl font-semibold border border-gray-300 rounded-lg focus:outline-none focus:border-[var(--crimson)] focus:ring-2 focus:ring-[var(--crimson)]/20"
-                      autoFocus={index === 0}
-                    />
-                  ))}
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={loading || otp.join('').length !== 6}
-                  className="w-full h-12 bg-[var(--crimson)] text-white font-medium rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity flex items-center justify-center gap-2"
-                >
-                  {loading ? 'Verifying...' : 'Verify & Login'}
-                  <ArrowRight size={18} />
-                </button>
-              </form>
-
-              {/* Resend Code */}
-              <div className="text-center mt-6">
-                <p className="text-sm text-gray-600">
-                  Didn't receive the code?{' '}
-                  <button
-                    onClick={handleResendOTP}
-                    disabled={loading || cooldown > 0}
-                    className="text-[var(--crimson)] font-medium hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {cooldown > 0 ? `Resend in ${cooldown}s` : 'Resend'}
-                  </button>
-                </p>
-              </div>
-            </>
-          )}
         </div>
 
         {/* Footer */}
         <p className="text-center text-xs text-gray-600 mt-6">
-          {step === 'form' && isLogin
-            ? 'A secure code will be sent to your email'
-            : step === 'form' && !isLogin
-            ? 'Create your account, then login with OTP'
-            : 'Check your spam folder if you don\'t see the email'}
+          Your personal shopping history and fit profile are saved securely
         </p>
       </div>
     </div>

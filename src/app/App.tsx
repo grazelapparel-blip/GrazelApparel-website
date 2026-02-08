@@ -12,49 +12,16 @@ import { UserAuth } from './components/user-auth';
 import { ImageWithFallback } from './components/figma/ImageWithFallback';
 import { AppProvider, useAppStore } from './store/app-store';
 
-// Mock product data
-const featuredProducts = [
-  {
-    id: '1',
-    name: 'Tailored Wool Blazer',
-    price: 495,
-    image: 'https://images.unsplash.com/photo-1762417421091-1b4e24facc62?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx0YWlsb3JlZCUyMG1lbnN3ZWFyfGVufDF8fHx8MTc2ODE5NjQ5OHww&ixlib=rb-4.1.0&q=80&w=1080',
-    fabric: 'Wool',
-    fit: 'Regular Fit'
-  },
-  {
-    id: '2',
-    name: 'Silk Evening Dress',
-    price: 675,
-    image: 'https://images.unsplash.com/photo-1562182856-e39faab686d7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxlbGVnYW50JTIwd29tYW4lMjBkcmVzc3xlbnwxfHx8fDE3NjgxOTY0OTh8MA&ixlib=rb-4.1.0&q=80&w=1080',
-    fabric: 'Silk',
-    fit: 'Slim Fit'
-  },
-  {
-    id: '3',
-    name: 'Cashmere Roll Neck',
-    price: 385,
-    image: 'https://images.unsplash.com/photo-1767898498160-b4043d7269da?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxsdXh1cnklMjBrbml0d2VhcnxlbnwxfHx8fDE3NjgxOTY0OTh8MA&ixlib=rb-4.1.0&q=80&w=1080',
-    fabric: 'Cashmere',
-    fit: 'Regular Fit'
-  },
-  {
-    id: '4',
-    name: 'Cotton Oxford Shirt',
-    price: 145,
-    image: 'https://images.unsplash.com/photo-1719518411339-5158cea86caf?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxsdXh1cnklMjBmYXNoaW9uJTIwZWRpdG9yaWFsfGVufDF8fHx8MTc2ODEyNDQyN3ww&ixlib=rb-4.1.0&q=80&w=1080',
-    fabric: 'Cotton',
-    fit: 'Slim Fit'
-  }
-];
-
 function AppContent() {
-  const { currentUser, logoutUser } = useAppStore();
+  const { currentUser, logoutUser, products } = useAppStore();
   const [currentPage, setCurrentPage] = useState<'home' | 'products' | 'product' | 'fit' | 'cart' | 'admin-login' | 'admin'>('home');
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const [pendingAction, setPendingAction] = useState<'cart' | 'wishlist' | null>(null);
   const [initialFilter, setInitialFilter] = useState<{ type: string; value: string } | null>(null);
+
+  // Get first 4 products as featured
+  const featuredProducts = products.slice(0, 4);
 
   // Check URL for admin access
   useEffect(() => {

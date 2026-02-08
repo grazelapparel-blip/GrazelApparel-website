@@ -84,9 +84,9 @@ interface AppContextType extends AppState {
   registerUser: (name: string, email: string, password: string) => Promise<boolean>;
   logoutUser: () => Promise<void>;
   // Admin CRUD operations
-  addProduct: (product: Omit<Product, 'id'>) => void;
-  updateProduct: (id: string, product: Partial<Product>) => void;
-  deleteProduct: (id: string) => void;
+  addProduct: (product: Omit<Product, 'id'>) => Promise<void>;
+  updateProduct: (id: string, product: Partial<Product>) => Promise<void>;
+  deleteProduct: (id: string) => Promise<void>;
   addUser: (user: Omit<User, 'id' | 'joinedDate'>) => void;
   updateUser: (id: string, user: Partial<User>) => void;
   deleteUser: (id: string) => void;
@@ -98,14 +98,14 @@ interface AppContextType extends AppState {
 const mockUsers: User[] = [];
 
 const mockProducts: Product[] = [
-  { id: '1', name: 'Tailored Wool Blazer', price: 495, image: 'https://images.unsplash.com/photo-1762417421091-1b4e24facc62?w=400', fabric: 'Wool', fit: 'Regular Fit', category: 'Outerwear', size: ['S', 'M', 'L', 'XL'] },
-  { id: '2', name: 'Silk Evening Dress', price: 675, image: 'https://images.unsplash.com/photo-1562182856-e39faab686d7?w=400', fabric: 'Silk', fit: 'Slim Fit', category: 'Dresses', size: ['XS', 'S', 'M', 'L'] },
-  { id: '3', name: 'Cashmere Roll Neck', price: 385, image: 'https://images.unsplash.com/photo-1603906650843-b58e94d9df4d?w=400', fabric: 'Cashmere', fit: 'Regular Fit', category: 'Knitwear', size: ['S', 'M', 'L', 'XL'] },
-  { id: '4', name: 'Cotton Oxford Shirt', price: 145, image: 'https://images.unsplash.com/photo-1760545183001-af3b64500b0d?w=400', fabric: 'Cotton', fit: 'Slim Fit', category: 'Shirts', size: ['S', 'M', 'L', 'XL', 'XXL'] },
-  { id: '5', name: 'Wool Dress Trousers', price: 225, image: 'https://images.unsplash.com/photo-1570653321427-0e4c0c40bb84?w=400', fabric: 'Wool', fit: 'Regular Fit', category: 'Trousers', size: ['30', '32', '34', '36', '38'] },
-  { id: '6', name: 'Cashmere Overcoat', price: 895, image: 'https://images.unsplash.com/photo-1577909687863-91bb3ec12db5?w=400', fabric: 'Cashmere', fit: 'Regular Fit', category: 'Outerwear', size: ['M', 'L', 'XL'] },
-  { id: '7', name: 'Linen Blazer', price: 425, image: 'https://images.unsplash.com/photo-1719518411339-5158cea86caf?w=400', fabric: 'Linen', fit: 'Relaxed Fit', category: 'Outerwear', size: ['S', 'M', 'L', 'XL'] },
-  { id: '8', name: 'Merino Wool Cardigan', price: 295, image: 'https://images.unsplash.com/photo-1767898498160-b4043d7269da?w=400', fabric: 'Wool', fit: 'Regular Fit', category: 'Knitwear', size: ['S', 'M', 'L', 'XL'] },
+  { id: '550e8400-e29b-41d4-a716-446655440001', name: 'Tailored Wool Blazer', price: 495, image: 'https://images.unsplash.com/photo-1762417421091-1b4e24facc62?w=400', fabric: 'Wool', fit: 'Regular Fit', category: 'Outerwear', size: ['S', 'M', 'L', 'XL'] },
+  { id: '550e8400-e29b-41d4-a716-446655440002', name: 'Silk Evening Dress', price: 675, image: 'https://images.unsplash.com/photo-1562182856-e39faab686d7?w=400', fabric: 'Silk', fit: 'Slim Fit', category: 'Dresses', size: ['XS', 'S', 'M', 'L'] },
+  { id: '550e8400-e29b-41d4-a716-446655440003', name: 'Cashmere Roll Neck', price: 385, image: 'https://images.unsplash.com/photo-1603906650843-b58e94d9df4d?w=400', fabric: 'Cashmere', fit: 'Regular Fit', category: 'Knitwear', size: ['S', 'M', 'L', 'XL'] },
+  { id: '550e8400-e29b-41d4-a716-446655440004', name: 'Cotton Oxford Shirt', price: 145, image: 'https://images.unsplash.com/photo-1760545183001-af3b64500b0d?w=400', fabric: 'Cotton', fit: 'Slim Fit', category: 'Shirts', size: ['S', 'M', 'L', 'XL', 'XXL'] },
+  { id: '550e8400-e29b-41d4-a716-446655440005', name: 'Wool Dress Trousers', price: 225, image: 'https://images.unsplash.com/photo-1570653321427-0e4c0c40bb84?w=400', fabric: 'Wool', fit: 'Regular Fit', category: 'Trousers', size: ['30', '32', '34', '36', '38'] },
+  { id: '550e8400-e29b-41d4-a716-446655440006', name: 'Cashmere Overcoat', price: 895, image: 'https://images.unsplash.com/photo-1577909687863-91bb3ec12db5?w=400', fabric: 'Cashmere', fit: 'Regular Fit', category: 'Outerwear', size: ['M', 'L', 'XL'] },
+  { id: '550e8400-e29b-41d4-a716-446655440007', name: 'Linen Blazer', price: 425, image: 'https://images.unsplash.com/photo-1719518411339-5158cea86caf?w=400', fabric: 'Linen', fit: 'Relaxed Fit', category: 'Outerwear', size: ['S', 'M', 'L', 'XL'] },
+  { id: '550e8400-e29b-41d4-a716-446655440008', name: 'Merino Wool Cardigan', price: 295, image: 'https://images.unsplash.com/photo-1767898498160-b4043d7269da?w=400', fabric: 'Wool', fit: 'Regular Fit', category: 'Knitwear', size: ['S', 'M', 'L', 'XL'] },
 ];
 
 const mockOrders: Order[] = [];
@@ -120,19 +120,99 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [products, setProducts] = useState<Product[]>(mockProducts);
   const [fitProfiles, setFitProfiles] = useState<FitProfile[]>(mockFitProfiles);
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(() => {
+    // Restore session from localStorage on mount
+    const saved = localStorage.getItem('currentUser');
+    return saved ? JSON.parse(saved) : null;
+  });
   const [isAdmin, setIsAdmin] = useState(false);
 
-  // Handle automatic logout when browser closes
+  // Set up Supabase auth listener on mount
   useEffect(() => {
-    const handleBeforeUnload = () => {
-      // Clear current user when browser closes
-      localStorage.removeItem('currentUser');
-    };
+    // First restore from localStorage
+    const saved = localStorage.getItem('currentUser');
+    if (saved) {
+      try {
+        setCurrentUser(JSON.parse(saved));
+      } catch (err) {
+        console.error('Failed to parse saved user:', err);
+      }
+    }
 
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    // Listen for Supabase auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && session?.user) {
+        const user: User = {
+          id: session.user.id,
+          email: session.user.email || '',
+          name: session.user.user_metadata?.name || 'User',
+          joinedDate: new Date().toISOString().split('T')[0]
+        };
+        setCurrentUser(user);
+        localStorage.setItem('currentUser', JSON.stringify(user));
+      } else if (event === 'SIGNED_OUT' || !session) {
+        setCurrentUser(null);
+        localStorage.removeItem('currentUser');
+      }
+    });
+
+    return () => subscription?.unsubscribe();
   }, []);
+
+  // Persist current user to localStorage when it changes
+  useEffect(() => {
+    if (currentUser) {
+      localStorage.setItem('currentUser', JSON.stringify(currentUser));
+    } else {
+      localStorage.removeItem('currentUser');
+    }
+  }, [currentUser]);
+
+  // Fetch products from Supabase on mount
+  useEffect(() => {
+    fetchProductsFromSupabase();
+    // Set up auto-refresh every 3 seconds to catch admin changes immediately
+    const interval = setInterval(fetchProductsFromSupabase, 3000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const fetchProductsFromSupabase = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .eq('is_active', true);
+
+      if (error) {
+        console.error('Error fetching products from Supabase:', error);
+        return;
+      }
+
+      if (data && data.length > 0) {
+        // Convert Supabase products to app format
+        const supabaseProducts = data.map((p: any) => ({
+          id: p.id,
+          name: p.name,
+          price: p.price,
+          image: p.image_url,
+          fabric: p.fabric,
+          fit: p.fit,
+          category: p.category,
+          size: p.sizes
+        }));
+        
+        // Use ONLY Supabase products, don't mix with mock products
+        setProducts(supabaseProducts);
+      } else {
+        // If no products in Supabase, use mock products
+        setProducts(mockProducts);
+      }
+    } catch (err) {
+      console.error('Failed to fetch products:', err);
+      // Keep mock products as fallback
+      setProducts(mockProducts);
+    }
+  };
 
   const addToCart = (product: Product, size: string, quantity: number) => {
     setCartItems(prev => {
@@ -297,24 +377,124 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   // Admin CRUD Operations for Products
-  const addProduct = (product: Omit<Product, 'id'>) => {
-    const newProduct: Product = {
-      ...product,
-      id: `prod-${Date.now()}`
-    };
-    setProducts(prev => [...prev, newProduct]);
+  const addProduct = async (product: Omit<Product, 'id'>) => {
+    try {
+      // Insert into Supabase
+      const { data, error } = await supabase
+        .from('products')
+        .insert([
+          {
+            name: product.name,
+            price: product.price,
+            image_url: product.image,
+            fabric: product.fabric,
+            fit: product.fit,
+            category: product.category,
+            sizes: product.size || [],
+            is_active: true
+          }
+        ])
+        .select();
+
+      if (error) {
+        console.error('Error adding product to Supabase:', error);
+        // Fallback: add to store only
+        const newProduct: Product = {
+          ...product,
+          id: `prod-${Date.now()}`
+        };
+        setProducts(prev => [...prev, newProduct]);
+      } else if (data && data.length > 0) {
+        // Add the product with Supabase ID
+        const newProduct: Product = {
+          name: data[0].name,
+          price: data[0].price,
+          image: data[0].image_url,
+          fabric: data[0].fabric,
+          fit: data[0].fit,
+          category: data[0].category,
+          size: data[0].sizes,
+          id: data[0].id
+        };
+        setProducts(prev => [...prev, newProduct]);
+        // Refresh products to ensure all data is synced
+        await fetchProductsFromSupabase();
+      }
+    } catch (err) {
+      console.error('Failed to add product:', err);
+      // Fallback to store only
+      const newProduct: Product = {
+        ...product,
+        id: `prod-${Date.now()}`
+      };
+      setProducts(prev => [...prev, newProduct]);
+    }
   };
 
-  const updateProduct = (id: string, updates: Partial<Product>) => {
-    setProducts(prev =>
-      prev.map(product =>
-        product.id === id ? { ...product, ...updates } : product
-      )
-    );
+  const updateProduct = async (id: string, updates: Partial<Product>) => {
+    try {
+      // Update in Supabase
+      const { error } = await supabase
+        .from('products')
+        .update({
+          name: updates.name,
+          price: updates.price,
+          image_url: updates.image,
+          fabric: updates.fabric,
+          fit: updates.fit,
+          category: updates.category,
+          sizes: updates.size
+        })
+        .eq('id', id);
+
+      if (error) {
+        console.error('Error updating product in Supabase:', error);
+      } else {
+        // Refresh products after successful update
+        await fetchProductsFromSupabase();
+        return;
+      }
+      
+      // Update in store as fallback
+      setProducts(prev =>
+        prev.map(product =>
+          product.id === id ? { ...product, ...updates } : product
+        )
+      );
+    } catch (err) {
+      console.error('Failed to update product:', err);
+      // Fallback to store update
+      setProducts(prev =>
+        prev.map(product =>
+          product.id === id ? { ...product, ...updates } : product
+        )
+      );
+    }
   };
 
-  const deleteProduct = (id: string) => {
-    setProducts(prev => prev.filter(product => product.id !== id));
+  const deleteProduct = async (id: string) => {
+    try {
+      // Delete from Supabase (soft delete - set is_active to false)
+      const { error } = await supabase
+        .from('products')
+        .update({ is_active: false })
+        .eq('id', id);
+
+      if (error) {
+        console.error('Error deleting product from Supabase:', error);
+      } else {
+        // Refresh products after successful delete
+        await fetchProductsFromSupabase();
+        return;
+      }
+      
+      // Delete from store as fallback
+      setProducts(prev => prev.filter(product => product.id !== id));
+    } catch (err) {
+      console.error('Failed to delete product:', err);
+      // Fallback to store delete
+      setProducts(prev => prev.filter(product => product.id !== id));
+    }
   };
 
   // Admin CRUD Operations for Users

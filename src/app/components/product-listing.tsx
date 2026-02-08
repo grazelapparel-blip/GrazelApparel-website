@@ -1,17 +1,7 @@
 import { useState, useEffect } from 'react';
 import { ChevronDown, SlidersHorizontal, X } from 'lucide-react';
 import { ProductCard } from './product-card';
-
-const allProducts = [
-  { id: '1', name: 'Tailored Wool Blazer', price: 495, image: 'https://images.unsplash.com/photo-1762417421091-1b4e24facc62?w=1080', fabric: 'Wool', fit: 'Regular Fit', category: 'Outerwear', size: ['S', 'M', 'L', 'XL'] },
-  { id: '2', name: 'Silk Evening Dress', price: 675, image: 'https://images.unsplash.com/photo-1562182856-e39faab686d7?w=1080', fabric: 'Silk', fit: 'Slim Fit', category: 'Dresses', size: ['XS', 'S', 'M', 'L'] },
-  { id: '3', name: 'Cashmere Roll Neck', price: 385, image: 'https://images.unsplash.com/photo-1603906650843-b58e94d9df4d?w=1080', fabric: 'Cashmere', fit: 'Regular Fit', category: 'Knitwear', size: ['S', 'M', 'L', 'XL'] },
-  { id: '4', name: 'Cotton Oxford Shirt', price: 145, image: 'https://images.unsplash.com/photo-1760545183001-af3b64500b0d?w=1080', fabric: 'Cotton', fit: 'Slim Fit', category: 'Shirts', size: ['S', 'M', 'L', 'XL', 'XXL'] },
-  { id: '5', name: 'Wool Dress Trousers', price: 225, image: 'https://images.unsplash.com/photo-1570653321427-0e4c0c40bb84?w=1080', fabric: 'Wool', fit: 'Regular Fit', category: 'Trousers', size: ['30', '32', '34', '36', '38'] },
-  { id: '6', name: 'Cashmere Overcoat', price: 895, image: 'https://images.unsplash.com/photo-1577909687863-91bb3ec12db5?w=1080', fabric: 'Cashmere', fit: 'Regular Fit', category: 'Outerwear', size: ['M', 'L', 'XL'] },
-  { id: '7', name: 'Linen Blazer', price: 425, image: 'https://images.unsplash.com/photo-1719518411339-5158cea86caf?w=1080', fabric: 'Linen', fit: 'Relaxed Fit', category: 'Outerwear', size: ['S', 'M', 'L', 'XL'] },
-  { id: '8', name: 'Merino Wool Cardigan', price: 295, image: 'https://images.unsplash.com/photo-1767898498160-b4043d7269da?w=1080', fabric: 'Wool', fit: 'Regular Fit', category: 'Knitwear', size: ['S', 'M', 'L', 'XL'] },
-];
+import { useAppStore } from '../store/app-store';
 
 interface ProductListingProps {
   onProductClick: () => void;
@@ -20,6 +10,7 @@ interface ProductListingProps {
 }
 
 export function ProductListing({ onProductClick, initialFilter, onFilterApplied }: ProductListingProps) {
+  const { products } = useAppStore();
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [selectedFilters, setSelectedFilters] = useState<{
     category: string[];
@@ -90,7 +81,7 @@ export function ProductListing({ onProductClick, initialFilter, onFilterApplied 
   const hasActiveFilters = Object.values(selectedFilters).some(arr => arr.length > 0);
 
   // Filter products based on selected filters
-  const filteredProducts = allProducts.filter(product => {
+  const filteredProducts = products.filter(product => {
     // Category filter
     if (selectedFilters.category.length > 0 && !selectedFilters.category.includes(product.category)) {
       return false;
@@ -104,7 +95,7 @@ export function ProductListing({ onProductClick, initialFilter, onFilterApplied 
       return false;
     }
     // Size filter
-    if (selectedFilters.size.length > 0 && !selectedFilters.size.some(size => product.size.includes(size))) {
+    if (selectedFilters.size.length > 0 && !selectedFilters.size.some(size => product.size?.includes(size))) {
       return false;
     }
     // Price filter
@@ -162,7 +153,7 @@ export function ProductListing({ onProductClick, initialFilter, onFilterApplied 
       {/* Header */}
       <div className="mb-8">
         <h1 className="font-[var(--font-serif)] text-4xl mb-2 text-[var(--charcoal)]">All Products</h1>
-        <p className="text-[14px] text-[var(--light-gray)]">{sortedProducts.length} of {allProducts.length} items</p>
+        <p className="text-[14px] text-[var(--light-gray)]">{sortedProducts.length} of {products.length} items</p>
       </div>
 
       {/* Mobile Filter Button */}
