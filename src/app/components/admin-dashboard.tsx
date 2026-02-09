@@ -157,7 +157,8 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
       size: productForm.size.split(',').map(s => s.trim()).filter(Boolean),
       gender: productForm.gender,
       isEssential: productForm.isEssential,
-      offerPercentage: Number(productForm.offerPercentage) || 0
+      offerPercentage: Number(productForm.offerPercentage) || 0,
+      createdAt: editingProduct?.createdAt || new Date().toISOString()
     };
 
     if (editingProduct) {

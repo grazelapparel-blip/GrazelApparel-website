@@ -19,13 +19,15 @@ export function ProductListing({ onProductClick, initialFilter, onFilterApplied 
     size: string[];
     price: string[];
     essentials: boolean;
+    newIn: boolean;
   }>({
     category: [],
     fabric: [],
     fit: [],
     size: [],
     price: [],
-    essentials: false
+    essentials: false,
+    newIn: false
   });
   const [sortBy, setSortBy] = useState('new');
 
@@ -42,7 +44,19 @@ export function ProductListing({ onProductClick, initialFilter, onFilterApplied 
           fit: [],
           size: [],
           price: [],
-          essentials: true
+          essentials: true,
+          newIn: false
+        }));
+      } else if (type === 'new_in') {
+        setSelectedFilters(prev => ({
+          ...prev,
+          category: [],
+          fabric: [],
+          fit: [],
+          size: [],
+          price: [],
+          essentials: false,
+          newIn: true
         }));
       } else {
         // Map the filter value to match our filter options
@@ -59,6 +73,7 @@ export function ProductListing({ onProductClick, initialFilter, onFilterApplied 
           size: [],
           price: [],
           essentials: false,
+          newIn: false,
           [type]: [filterValue]
         }));
       }
@@ -100,7 +115,8 @@ export function ProductListing({ onProductClick, initialFilter, onFilterApplied 
       fit: [],
       size: [],
       price: [],
-      essentials: false
+      essentials: false,
+      newIn: false
     });
   };
 
@@ -114,6 +130,15 @@ export function ProductListing({ onProductClick, initialFilter, onFilterApplied 
     // Essentials filter
     if (selectedFilters.essentials && !product.isEssential) {
       return false;
+    }
+    // New In filter (products added today)
+    if (selectedFilters.newIn) {
+      if (!product.createdAt) return false;
+      const productDate = new Date(product.createdAt).toDateString();
+      const todayDate = new Date().toDateString();
+      if (productDate !== todayDate) {
+        return false;
+      }
     }
     // Category filter
     if (selectedFilters.category.length > 0 && (!product.category || !selectedFilters.category.includes(product.category))) {
@@ -245,6 +270,19 @@ export function ProductListing({ onProductClick, initialFilter, onFilterApplied 
                         >
                           Essentials
                           <button onClick={() => toggleFilter('essentials', '')}>
+                            <X size={14} />
+                          </button>
+                        </span>
+                      );
+                    }
+                    if (key === 'newIn' && values === true) {
+                      return (
+                        <span
+                          key="newIn-true"
+                          className="inline-flex items-center gap-2 px-3 py-1 border border-[var(--crimson)] text-[var(--crimson)] text-[13px]"
+                        >
+                          New In
+                          <button onClick={() => toggleFilter('newIn', '')}>
                             <X size={14} />
                           </button>
                         </span>

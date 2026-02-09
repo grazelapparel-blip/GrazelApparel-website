@@ -14,6 +14,7 @@ export interface Product {
   gender?: string;
   isEssential?: boolean;
   offerPercentage?: number;
+  createdAt?: string;
 }
 
 export interface CartItem extends Product {
@@ -213,7 +214,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
           size: p.sizes,
           gender: p.gender,
           isEssential: p.is_essential,
-          offerPercentage: p.offer_percentage
+          offerPercentage: p.offer_percentage,
+          createdAt: p.created_at
         }));
         
         // Use ONLY Supabase products, don't mix with mock products
@@ -440,7 +442,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
             gender: product.gender,
             is_essential: product.isEssential || false,
             offer_percentage: product.offerPercentage || 0,
-            is_active: true
+            is_active: true,
+            created_at: product.createdAt || new Date().toISOString()
           }
         ])
         .select();
@@ -466,6 +469,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           gender: data[0].gender,
           isEssential: data[0].is_essential,
           offerPercentage: data[0].offer_percentage,
+          createdAt: data[0].created_at,
           id: data[0].id
         };
         setProducts(prev => [...prev, newProduct]);
@@ -498,7 +502,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
           sizes: updates.size,
           gender: updates.gender,
           is_essential: updates.isEssential,
-          offer_percentage: updates.offerPercentage
+          offer_percentage: updates.offerPercentage,
+          created_at: updates.createdAt
         })
         .eq('id', id);
 

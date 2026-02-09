@@ -125,6 +125,8 @@ export function Header({ onLogout, onSearch, onWishlist, onCart, onProducts, onN
                   onClick={() => {
                     if (item.label === 'Essentials') {
                       onFilterNavigation?.('essentials', 'true');
+                    } else if (item.label === 'New In') {
+                      onFilterNavigation?.('new_in', 'true');
                     } else {
                       onNavigation?.(item.label);
                     }
@@ -265,6 +267,8 @@ export function Header({ onLogout, onSearch, onWishlist, onCart, onProducts, onN
                   onClick={() => {
                     if (item.label === 'Essentials') {
                       onFilterNavigation?.('essentials', 'true');
+                    } else if (item.label === 'New In') {
+                      onFilterNavigation?.('new_in', 'true');
                     } else {
                       onNavigation?.(item.label);
                     }
