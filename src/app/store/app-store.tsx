@@ -129,6 +129,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return saved ? JSON.parse(saved) : null;
   });
   const [isAdmin, setIsAdmin] = useState(false);
+  const [supabaseConnected, setSupabaseConnected] = useState(true);
 
   // Set up Supabase auth listener on mount
   useEffect(() => {
@@ -175,11 +176,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     fetchProductsFromSupabase();
     fetchUsersFromSupabase();
-    // Set up auto-refresh every 3 seconds to catch admin changes immediately
+    // Set up auto-refresh every 5 seconds to catch admin changes
     const interval = setInterval(() => {
       fetchProductsFromSupabase();
       fetchUsersFromSupabase();
-    }, 3000);
+    }, 5000);
     return () => clearInterval(interval);
   }, []);
 
@@ -191,9 +192,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
         .eq('is_active', true);
 
       if (error) {
-        console.error('Error fetching products from Supabase:', error);
+        console.warn('Supabase connection issue. Using mock products as fallback.');
+        setSupabaseConnected(false);
+        // Keep mock products as fallback
         return;
       }
+
+      setSupabaseConnected(true);
 
       if (data && data.length > 0) {
         // Convert Supabase products to app format
@@ -217,8 +222,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         // If no products in Supabase, use mock products
         setProducts(mockProducts);
       }
-    } catch (err) {
-      console.error('Failed to fetch products:', err);
+    } catch (err: any) {
+      console.warn('Failed to fetch products from Supabase. Using mock products as fallback:', err?.message);
+      setSupabaseConnected(false);
       // Keep mock products as fallback
       setProducts(mockProducts);
     }
@@ -232,7 +238,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         .order('joined_date', { ascending: false });
 
       if (error) {
-        console.error('Error fetching users from Supabase:', error);
+        console.warn('Supabase connection issue. Could not fetch users.');
         return;
       }
 
@@ -248,8 +254,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         
         setUsers(supabaseUsers);
       }
-    } catch (err) {
-      console.error('Failed to fetch users:', err);
+    } catch (err: any) {
+      console.warn('Failed to fetch users from Supabase:', err?.message);
+      // Keep existing users
     }
   };
 
