@@ -495,7 +495,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
           fabric: updates.fabric,
           fit: updates.fit,
           category: updates.category,
-          sizes: updates.size
+          sizes: updates.size,
+          gender: updates.gender,
+          is_essential: updates.isEssential,
+          offer_percentage: updates.offerPercentage
         })
         .eq('id', id);
 
