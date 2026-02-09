@@ -1,4 +1,35 @@
 -- Grazel Apparel Supabase Database Schema
+-- ============================================
+-- Complete database schema for the Grazel Apparel e-commerce platform
+-- 
+-- FEATURES:
+-- ✓ User authentication and profiles
+-- ✓ Product catalog with gender, essentials flag, and offer percentage
+-- ✓ Order management with status tracking
+-- ✓ Shopping cart functionality
+-- ✓ Fit profiles for personalized recommendations
+-- ✓ Wishlist support
+-- ✓ Product reviews and ratings
+-- ✓ Newsletter subscription management
+-- ✓ Row-level security (RLS) for data privacy
+-- ✓ Comprehensive indexes for performance
+-- 
+-- TABLES:
+-- 1. users - User profiles (extends Supabase auth)
+-- 2. user_addresses - Shipping and billing addresses
+-- 3. products - Product catalog with gender, essentials, and offers
+-- 4. orders - Order records with status tracking
+-- 5. order_items - Line items in orders
+-- 6. cart_items - Shopping cart for users
+-- 7. fit_profiles - Personal fit preferences
+-- 8. wishlist_items - Saved products
+-- 9. reviews - Product reviews and ratings
+-- 10. newsletter_subscribers - Email subscribers
+--
+-- This SQL is idempotent - safe to run multiple times
+-- ============================================
+
+-- Grazel Apparel Supabase Database Schema
 -- This SQL creates all necessary tables for the application
 
 -- 1. Users Table (extends Supabase auth.users)
@@ -151,6 +182,11 @@ CREATE INDEX IF NOT EXISTS idx_wishlist_user_id ON wishlist_items(user_id);
 CREATE INDEX IF NOT EXISTS idx_reviews_product_id ON reviews(product_id);
 CREATE INDEX IF NOT EXISTS idx_reviews_user_id ON reviews(user_id);
 CREATE INDEX IF NOT EXISTS idx_user_addresses_user_id ON user_addresses(user_id);
+
+-- Indexes for new product fields
+CREATE INDEX IF NOT EXISTS idx_products_gender ON products(gender);
+CREATE INDEX IF NOT EXISTS idx_products_is_essential ON products(is_essential);
+CREATE INDEX IF NOT EXISTS idx_products_offer_percentage ON products(offer_percentage) WHERE offer_percentage > 0;
 
 -- ============================================
 -- ROW LEVEL SECURITY POLICIES
