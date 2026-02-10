@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { ChevronDown, SlidersHorizontal, X } from 'lucide-react';
 import { ProductCard } from './product-card';
-import { useAppStore } from '../store/app-store';
+import { useAppStore, Product } from '../store/app-store';
 
 interface ProductListingProps {
-  onProductClick: () => void;
+  onProductClick: (product: Product) => void;
   initialFilter?: { type: string; value: string } | null;
   onFilterApplied?: () => void;
 }
@@ -324,7 +324,7 @@ export function ProductListing({ onProductClick, initialFilter, onFilterApplied 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
             {sortedProducts.length > 0 ? (
               sortedProducts.map((product) => (
-                <div key={product.id} onClick={onProductClick} className="cursor-pointer">
+                <div key={product.id} onClick={() => onProductClick(product)} className="cursor-pointer">
                   <ProductCard {...product} />
                 </div>
               ))

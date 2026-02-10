@@ -13,8 +13,9 @@ import { ImageWithFallback } from './components/figma/ImageWithFallback';
 import { AppProvider, useAppStore } from './store/app-store';
 
 function AppContent() {
-  const { currentUser, logoutUser, products } = useAppStore();
+  const { currentUser, logoutUser, products, addToCart } = useAppStore();
   const [currentPage, setCurrentPage] = useState<'home' | 'products' | 'product' | 'fit' | 'cart' | 'admin-login' | 'admin'>('home');
+  const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(() => {
     // Check localStorage for persistent admin session
     const saved = localStorage.getItem('adminSession');
@@ -157,7 +158,10 @@ function AppContent() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
               {featuredProducts.map((product) => (
-                <div key={product.id} onClick={() => setCurrentPage('product')}>
+                <div key={product.id} onClick={() => {
+                  setSelectedProduct(product);
+                  setCurrentPage('product');
+                }} className="cursor-pointer">
                   <ProductCard {...product} />
                 </div>
               ))}
@@ -228,7 +232,10 @@ function AppContent() {
 
       {currentPage === 'products' && (
         <ProductListing 
-          onProductClick={() => setCurrentPage('product')} 
+          onProductClick={(product) => {
+            setSelectedProduct(product);
+            setCurrentPage('product');
+          }}
           initialFilter={initialFilter}
           onFilterApplied={() => setInitialFilter(null)}
         />
@@ -236,6 +243,7 @@ function AppContent() {
 
       {currentPage === 'product' && (
         <ProductDetail 
+          product={selectedProduct}
           onFitIntelligenceClick={() => {
             if (!currentUser) {
               setShowLoginPrompt(true);
@@ -244,12 +252,13 @@ function AppContent() {
             }
             setCurrentPage('fit');
           }}
-          onAddToCart={() => {
+          onAddToCart={(product, size, quantity) => {
             if (!currentUser) {
               setShowLoginPrompt(true);
               setPendingAction('cart');
               return;
             }
+            addToCart(product, size, quantity);
             setCurrentPage('cart');
           }}
         />
