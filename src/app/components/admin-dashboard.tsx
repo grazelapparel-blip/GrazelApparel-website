@@ -75,10 +75,14 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
     name: '', email: '', phone: '', street: '', city: '', postcode: '', country: 'United Kingdom'
   });
 
-  // Fetch fit profiles when tab is active
+  // Fetch fit profiles on component mount and when tab is active
+  useEffect(() => {
+    getFitProfiles(); // Fetch on mount
+  }, []);
+
   useEffect(() => {
     if (activeTab === 'fit-profiles') {
-      getFitProfiles();
+      getFitProfiles(); // Refresh when tab is clicked
     }
   }, [activeTab, getFitProfiles]);
 
