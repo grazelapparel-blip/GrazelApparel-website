@@ -1,5 +1,5 @@
-import { useState } from 'react';
 import { Minus, Plus, X, Lock } from 'lucide-react';
+import { useAppStore } from '../store/app-store';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 
 interface CartCheckoutProps {
@@ -7,31 +7,22 @@ interface CartCheckoutProps {
 }
 
 export function CartCheckout({ onContinueShopping }: CartCheckoutProps) {
-  const [cartItems, setCartItems] = useState([
-    {
-      id: '1',
-      name: 'Tailored Wool Blazer',
-      price: 495,
-      size: 'M',
-      quantity: 1,
-      image: 'https://images.unsplash.com/photo-1762417421091-1b4e24facc62?w=400',
-      fabric: 'Wool',
-      fit: 'Regular Fit'
-    }
-  ]);
+  const { cartItems, removeFromCart, updateCartQuantity, createOrder } = useAppStore();
 
-  const updateQuantity = (id: string, newQuantity: number) => {
-    if (newQuantity === 0) {
-      setCartItems(cartItems.filter(item => item.id !== id));
-    } else {
-      setCartItems(cartItems.map(item =>
-        item.id === id ? { ...item, quantity: newQuantity } : item
-      ));
-    }
+  const handleRemoveItem = (productId: string) => {
+    removeFromCart(productId);
   };
 
-  const removeItem = (id: string) => {
-    setCartItems(cartItems.filter(item => item.id !== id));
+  const handleUpdateQuantity = (productId: string, newQuantity: number) => {
+    updateCartQuantity(productId, newQuantity);
+  };
+
+  const handleCheckout = () => {
+    const order = createOrder();
+    if (order) {
+      alert(`Order placed! Order ID: ${order.id}`);
+      onContinueShopping();
+    }
   };
 
   const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
@@ -77,12 +68,13 @@ export function CartCheckout({ onContinueShopping }: CartCheckoutProps) {
                           {item.name}
                         </h3>
                         <p className="text-[13px] text-[var(--light-gray)]">
-                          {item.fabric} · {item.fit} · Size {item.size}
+                          {item.fabric} · {item.fit} · Size {item.selectedSize || item.size}
                         </p>
                       </div>
                       <button
-                        onClick={() => removeItem(item.id)}
+                        onClick={() => handleRemoveItem(item.id)}
                         className="text-[var(--charcoal)] hover:text-[var(--crimson)] transition-colors"
+                        title="Remove from cart"
                       >
                         <X size={20} strokeWidth={1.5} />
                       </button>
@@ -90,8 +82,9 @@ export function CartCheckout({ onContinueShopping }: CartCheckoutProps) {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <button
-                          onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                          onClick={() => handleUpdateQuantity(item.id, item.quantity - 1)}
                           className="w-8 h-8 border border-[var(--border)] flex items-center justify-center hover:border-[var(--crimson)] transition-colors"
+                          title="Decrease quantity"
                         >
                           <Minus size={14} strokeWidth={1.5} />
                         </button>
@@ -99,8 +92,9 @@ export function CartCheckout({ onContinueShopping }: CartCheckoutProps) {
                           {item.quantity}
                         </span>
                         <button
-                          onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                          onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
                           className="w-8 h-8 border border-[var(--border)] flex items-center justify-center hover:border-[var(--crimson)] transition-colors"
+                          title="Increase quantity"
                         >
                           <Plus size={14} strokeWidth={1.5} />
                         </button>
@@ -151,6 +145,7 @@ export function CartCheckout({ onContinueShopping }: CartCheckoutProps) {
             </div>
 
             <button
+              onClick={handleCheckout}
               disabled={cartItems.length === 0}
               className="w-full h-14 bg-[var(--crimson)] text-white text-[14px] tracking-wide hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed mb-3"
             >
