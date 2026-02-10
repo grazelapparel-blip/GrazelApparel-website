@@ -1,18 +1,25 @@
 import { useState } from 'react';
 import { ArrowLeft, Check, Upload, X } from 'lucide-react';
+import { useAppStore } from '../store/app-store';
 
 interface FitIntelligenceProps {
   onClose: () => void;
-  onComplete: () => void;
+  onComplete: (recommendedSize: string) => void;
 }
 
 type Step = 'intro' | 'measurements' | 'body-type' | 'preference' | 'photos' | 'result';
 
 export function FitIntelligence({ onClose, onComplete }: FitIntelligenceProps) {
+  const { addFitProfile, currentUser } = useAppStore();
   const [currentStep, setCurrentStep] = useState<Step>('intro');
+  const [recommendedSize, setRecommendedSize] = useState<string>('M');
+  const [fitConfidence, setFitConfidence] = useState<number>(0);
   const [formData, setFormData] = useState({
     height: '',
     weight: '',
+    chest: '',
+    waist: '',
+    hips: '',
     bodyType: '',
     fitPreference: '',
     photosUploaded: 0
@@ -30,9 +37,72 @@ export function FitIntelligence({ onClose, onComplete }: FitIntelligenceProps) {
     { id: 'relaxed', label: 'Relaxed Fit', description: 'Generous room, easy wear' }
   ];
 
+  // Size recommendation algorithm based on measurements
+  const calculateRecommendedSize = (height: number, chest: number, fitPref: string) => {
+    let size = 'M'; // Default
+    let confidence = 70;
+
+    // Use chest and height for size calculation
+    if (chest && height) {
+      if (chest < 88) {
+        size = 'XS';
+        confidence = 85;
+      } else if (chest < 94) {
+        size = 'S';
+        confidence = 88;
+      } else if (chest < 100) {
+        size = 'M';
+        confidence = 90;
+      } else if (chest < 106) {
+        size = 'L';
+        confidence = 88;
+      } else if (chest < 112) {
+        size = 'XL';
+        confidence = 85;
+      } else {
+        size = 'XXL';
+        confidence = 82;
+      }
+
+      // Adjust for fit preference
+      if (fitPref === 'slim') {
+        // Slim fit might suggest size down in some cases
+        confidence += 5;
+      } else if (fitPref === 'relaxed') {
+        confidence += 3;
+      }
+    } else if (height) {
+      // If only height is available
+      if (height < 160) {
+        size = 'XS';
+      } else if (height < 170) {
+        size = 'S';
+      } else if (height < 180) {
+        size = 'M';
+      } else if (height < 190) {
+        size = 'L';
+      } else {
+        size = 'XL';
+      }
+      confidence = 65;
+    }
+
+    return { size, confidence: Math.min(confidence, 95) };
+  };
+
   const goToNextStep = () => {
     const steps: Step[] = ['intro', 'measurements', 'body-type', 'preference', 'photos', 'result'];
     const currentIndex = steps.indexOf(currentStep);
+
+    if (currentStep === 'preference') {
+      // Calculate recommended size before moving to result
+      const height = Number(formData.height);
+      const chest = Number(formData.chest);
+      const { size, confidence } = calculateRecommendedSize(height, chest, formData.fitPreference);
+      setRecommendedSize(size);
+      setFitConfidence(confidence);
+    }
+
     if (currentIndex < steps.length - 1) {
       setCurrentStep(steps[currentIndex + 1]);
     }
@@ -44,6 +114,26 @@ export function FitIntelligence({ onClose, onComplete }: FitIntelligenceProps) {
     if (currentIndex > 0) {
       setCurrentStep(steps[currentIndex - 1]);
     }
+  };
+
+  const handleCompleteProfile = async () => {
+    if (currentUser) {
+      try {
+        await addFitProfile({
+          height: formData.height,
+          weight: formData.weight,
+          chest: formData.chest,
+          waist: formData.waist,
+          hips: formData.hips,
+          preferredFit: formData.fitPreference as 'slim' | 'regular' | 'relaxed',
+          preferredSize: recommendedSize,
+          notes: `Body type: ${formData.bodyType}`
+        });
+      } catch (error) {
+        console.error('Failed to save fit profile:', error);
+      }
+    }
+    onComplete(recommendedSize);
   };
 
   const renderProgressBar = () => {
@@ -133,12 +223,12 @@ export function FitIntelligence({ onClose, onComplete }: FitIntelligenceProps) {
               Your Measurements
             </h2>
             <p className="text-[14px] text-[var(--light-gray)] mb-8">
-              Enter your height and weight for accurate fit recommendations.
+              Enter your measurements for accurate fit recommendations. All measurements in centimeters.
             </p>
             <div className="space-y-6 mb-8">
               <div>
                 <label className="block text-[14px] text-[var(--charcoal)] mb-2">
-                  Height (cm)
+                  Height (cm) <span className="text-[var(--crimson)]">*</span>
                 </label>
                 <input
                   type="number"
@@ -157,6 +247,42 @@ export function FitIntelligence({ onClose, onComplete }: FitIntelligenceProps) {
                   value={formData.weight}
                   onChange={(e) => setFormData({ ...formData, weight: e.target.value })}
                   placeholder="70"
+                  className="w-full h-12 px-4 border border-[var(--border)] text-[14px] focus:outline-none focus:ring-1 focus:ring-[var(--crimson)]"
+                />
+              </div>
+              <div>
+                <label className="block text-[14px] text-[var(--charcoal)] mb-2">
+                  Chest (cm) <span className="text-[var(--light-gray)]">(Optional)</span>
+                </label>
+                <input
+                  type="number"
+                  value={formData.chest}
+                  onChange={(e) => setFormData({ ...formData, chest: e.target.value })}
+                  placeholder="98"
+                  className="w-full h-12 px-4 border border-[var(--border)] text-[14px] focus:outline-none focus:ring-1 focus:ring-[var(--crimson)]"
+                />
+              </div>
+              <div>
+                <label className="block text-[14px] text-[var(--charcoal)] mb-2">
+                  Waist (cm) <span className="text-[var(--light-gray)]">(Optional)</span>
+                </label>
+                <input
+                  type="number"
+                  value={formData.waist}
+                  onChange={(e) => setFormData({ ...formData, waist: e.target.value })}
+                  placeholder="84"
+                  className="w-full h-12 px-4 border border-[var(--border)] text-[14px] focus:outline-none focus:ring-1 focus:ring-[var(--crimson)]"
+                />
+              </div>
+              <div>
+                <label className="block text-[14px] text-[var(--charcoal)] mb-2">
+                  Hips (cm) <span className="text-[var(--light-gray)]">(Optional)</span>
+                </label>
+                <input
+                  type="number"
+                  value={formData.hips}
+                  onChange={(e) => setFormData({ ...formData, hips: e.target.value })}
+                  placeholder="98"
                   className="w-full h-12 px-4 border border-[var(--border)] text-[14px] focus:outline-none focus:ring-1 focus:ring-[var(--crimson)]"
                 />
               </div>
@@ -323,34 +449,46 @@ export function FitIntelligence({ onClose, onComplete }: FitIntelligenceProps) {
             <div className="bg-[var(--cream)] p-8 mb-8">
               <div className="text-center mb-6">
                 <p className="text-[13px] text-[var(--light-gray)] mb-2">Recommended Size</p>
-                <p className="font-[var(--font-serif)] text-5xl text-[var(--crimson)]">M</p>
+                <p className="font-[var(--font-serif)] text-5xl text-[var(--crimson)]">{recommendedSize}</p>
               </div>
               <div className="space-y-3 text-[14px] text-[var(--charcoal)]">
                 <div className="flex justify-between py-3 border-t border-[var(--border)]">
                   <span>Fit Confidence</span>
-                  <span className="text-[var(--crimson)]">95%</span>
+                  <span className="text-[var(--crimson)]">{fitConfidence}%</span>
                 </div>
-                <div className="flex justify-between py-3 border-t border-[var(--border)]">
-                  <span>Chest Fit</span>
-                  <span>Excellent</span>
-                </div>
-                <div className="flex justify-between py-3 border-t border-[var(--border)]">
-                  <span>Shoulder Fit</span>
-                  <span>Excellent</span>
-                </div>
-                <div className="flex justify-between py-3 border-t border-b border-[var(--border)]">
-                  <span>Length</span>
-                  <span>Perfect</span>
-                </div>
+                {formData.height && (
+                  <div className="flex justify-between py-3 border-t border-[var(--border)]">
+                    <span>Height</span>
+                    <span>{formData.height} cm</span>
+                  </div>
+                )}
+                {formData.chest && (
+                  <div className="flex justify-between py-3 border-t border-[var(--border)]">
+                    <span>Chest</span>
+                    <span>{formData.chest} cm</span>
+                  </div>
+                )}
+                {formData.fitPreference && (
+                  <div className="flex justify-between py-3 border-t border-b border-[var(--border)]">
+                    <span>Fit Preference</span>
+                    <span className="capitalize">{formData.fitPreference.replace('-', ' ')} Fit</span>
+                  </div>
+                )}
               </div>
+            </div>
+
+            <div className="bg-blue-50 border border-blue-200 p-4 mb-8 rounded">
+              <p className="text-[13px] text-blue-900">
+                ✓ This profile has been saved to your account. You can update your measurements anytime to get new size recommendations.
+              </p>
             </div>
 
             <div className="space-y-3">
               <button
-                onClick={onComplete}
+                onClick={handleCompleteProfile}
                 className="w-full h-12 bg-[var(--crimson)] text-white text-[14px] tracking-wide hover:opacity-90 transition-opacity"
               >
-                Add to Cart - Size M
+                Add to Cart - Size {recommendedSize}
               </button>
               <button
                 onClick={onClose}

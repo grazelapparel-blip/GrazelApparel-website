@@ -264,10 +264,16 @@ function AppContent() {
         />
       )}
 
-      {currentPage === 'fit' && currentUser && (
-        <FitIntelligence 
+      {currentStep === 'fit' && currentUser && (
+        <FitIntelligence
           onClose={() => setCurrentPage('product')}
-          onComplete={() => setCurrentPage('cart')}
+          onComplete={(recommendedSize) => {
+            // Store recommended size in selected product if available
+            if (selectedProduct) {
+              setSelectedProduct({ ...selectedProduct, recommendedSize });
+            }
+            setCurrentPage('product');
+          }}
         />
       )}
 
