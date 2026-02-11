@@ -244,6 +244,106 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const fetchProductsFromSupabase = async () => {
+    // Mock products for fallback when Supabase is not connected
+    const mockProducts: Product[] = [
+      {
+        id: '1',
+        name: 'Tailored Wool Blazer',
+        price: 495,
+        image: 'https://images.unsplash.com/photo-1593642532400-2682a8a6b289?w=400&h=500&fit=crop',
+        fabric: 'Wool',
+        fit: 'Regular Fit',
+        category: 'Men',
+        gender: 'Male',
+        isEssential: false,
+        offerPercentage: 15
+      },
+      {
+        id: '2',
+        name: 'Silk Evening Dress',
+        price: 675,
+        image: 'https://images.unsplash.com/photo-1595777707802-08422fc4a3e6?w=400&h=500&fit=crop',
+        fabric: 'Silk',
+        fit: 'Slim Fit',
+        category: 'Women',
+        gender: 'Female',
+        isEssential: false,
+        offerPercentage: 10
+      },
+      {
+        id: '3',
+        name: 'Cashmere Roll Neck',
+        price: 385,
+        image: 'https://images.unsplash.com/photo-1591047990375-cd5d08cfd58a?w=400&h=500&fit=crop',
+        fabric: 'Cashmere',
+        fit: 'Regular Fit',
+        category: 'Men',
+        gender: 'Male',
+        isEssential: false,
+        offerPercentage: 0
+      },
+      {
+        id: '4',
+        name: 'Cotton Oxford Shirt',
+        price: 145,
+        image: 'https://images.unsplash.com/photo-1596362051609-b370a1c159a7?w=400&h=500&fit=crop',
+        fabric: 'Cotton',
+        fit: 'Slim Fit',
+        category: 'Men',
+        gender: 'Male',
+        isEssential: true,
+        offerPercentage: 20
+      },
+      {
+        id: '5',
+        name: 'Wool Dress Trousers',
+        price: 225,
+        image: 'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=400&h=500&fit=crop',
+        fabric: 'Wool',
+        fit: 'Regular Fit',
+        category: 'Men',
+        gender: 'Male',
+        isEssential: false,
+        offerPercentage: 12
+      },
+      {
+        id: '6',
+        name: 'Cashmere Overcoat',
+        price: 895,
+        image: 'https://images.unsplash.com/photo-1539533057592-4c691c1270f0?w=400&h=500&fit=crop',
+        fabric: 'Cashmere',
+        fit: 'Regular Fit',
+        category: 'Women',
+        gender: 'Female',
+        isEssential: false,
+        offerPercentage: 0
+      },
+      {
+        id: '7',
+        name: 'Linen Summer Shirt',
+        price: 99,
+        image: 'https://images.unsplash.com/photo-1597622424447-d3935a1f0d44?w=400&h=500&fit=crop',
+        fabric: 'Linen',
+        fit: 'Relaxed Fit',
+        category: 'Men',
+        gender: 'Male',
+        isEssential: true,
+        offerPercentage: 25
+      },
+      {
+        id: '8',
+        name: 'Silk Blouse',
+        price: 189,
+        image: 'https://images.unsplash.com/photo-1595348625778-3f52b86b7f2e?w=400&h=500&fit=crop',
+        fabric: 'Silk',
+        fit: 'Slim Fit',
+        category: 'Women',
+        gender: 'Female',
+        isEssential: false,
+        offerPercentage: 18
+      }
+    ];
+
     try {
       const { data, error } = await supabase
         .from('products')
@@ -251,44 +351,38 @@ export function AppProvider({ children }: { children: ReactNode }) {
         .eq('is_active', true)
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.warn('Supabase connection issue. Using empty products list.');
+      if (error || !data || data.length === 0) {
+        console.warn('Supabase connection issue or no products. Using mock products.');
         setSupabaseConnected(false);
-        // Show empty products list when no connection
-        setProducts([]);
+        // Use mock products as fallback
+        setProducts(mockProducts);
         return;
       }
 
       setSupabaseConnected(true);
 
-      if (data && data.length > 0) {
-        // Convert Supabase products to app format
-        const supabaseProducts = data.map((p: any) => ({
-          id: p.id,
-          name: p.name,
-          price: p.price,
-          image: p.image_url,
-          fabric: p.fabric,
-          fit: p.fit,
-          category: p.category,
-          size: p.sizes,
-          gender: p.gender,
-          isEssential: p.is_essential,
-          offerPercentage: p.offer_percentage,
-          createdAt: p.created_at
-        }));
-        
-        // Use ONLY Supabase products, don't mix with mock products
-        setProducts(supabaseProducts);
-      } else {
-        // If no products in Supabase, show empty list (no fallback to mock products)
-        setProducts([]);
-      }
+      // Convert Supabase products to app format
+      const supabaseProducts = data.map((p: any) => ({
+        id: p.id,
+        name: p.name,
+        price: p.price,
+        image: p.image_url,
+        fabric: p.fabric,
+        fit: p.fit,
+        category: p.category,
+        size: p.sizes,
+        gender: p.gender,
+        isEssential: p.is_essential,
+        offerPercentage: p.offer_percentage,
+        createdAt: p.created_at
+      }));
+
+      setProducts(supabaseProducts);
     } catch (err: any) {
-      console.warn('Failed to fetch products from Supabase. Using empty products list:', err?.message);
+      console.warn('Failed to fetch products from Supabase. Using mock products:', err?.message);
       setSupabaseConnected(false);
-      // Show empty products list on error (no fallback to mock products)
-      setProducts([]);
+      // Use mock products as fallback when error
+      setProducts(mockProducts);
     }
   };
 
