@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useAppStore } from '../store/app-store';
 import { supabase } from '../../lib/supabase';
 
 interface FooterLink {
@@ -16,7 +15,6 @@ interface FooterSection {
 }
 
 export function Footer() {
-  const { setCurrentPage } = useAppStore();
   const [newsletterEmail, setNewsletterEmail] = useState('');
   const [newsletterLoading, setNewsletterLoading] = useState(false);
   const [newsletterMessage, setNewsletterMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -67,20 +65,7 @@ export function Footer() {
   ];
 
   const handleLinkClick = (link: FooterLink) => {
-    if (link.type === 'shop') {
-      // Navigate to products - just change page, category filtering happens in products component
-      setCurrentPage('products');
-    } else if (link.type === 'page') {
-      // Navigate to other pages based on path
-      if (link.path === '/contact') {
-        setCurrentPage('contact');
-      } else if (link.path === '/about') {
-        setCurrentPage('about');
-      } else {
-        // For other pages, navigate to products as fallback
-        setCurrentPage('products');
-      }
-    } else if (link.type === 'social') {
+    if (link.type === 'social') {
       // Open social media links in new tab
       window.open(link.path, '_blank');
     } else if (link.type === 'scroll') {
@@ -90,6 +75,8 @@ export function Footer() {
         element.scrollIntoView({ behavior: 'smooth' });
       }
     }
+    // For shop and page links, they're informational only
+    // Parent app handles actual navigation through header menu
   };
 
   const handleNewsletterSubscribe = async (e: React.FormEvent<HTMLFormElement>) => {

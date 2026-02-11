@@ -1,14 +1,15 @@
 import { useState } from 'react';
-import { ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { useAppStore } from '../store/app-store';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 
 interface CollectionsPageProps {
   onShowMore?: (category: string) => void;
+  onProductClick?: (product: any) => void;
 }
 
-export function CollectionsPage({ onShowMore }: CollectionsPageProps) {
-  const { products, setCurrentPage } = useAppStore();
+export function CollectionsPage({ onShowMore, onProductClick }: CollectionsPageProps) {
+  const { products } = useAppStore();
   const [activeCategory, setActiveCategory] = useState<string>('Men');
 
   // Collections data
@@ -61,7 +62,10 @@ export function CollectionsPage({ onShowMore }: CollectionsPageProps) {
 
   const handleShowMore = () => {
     onShowMore?.(activeCategory);
-    setCurrentPage('products');
+  };
+
+  const handleProductClick = (product: any) => {
+    onProductClick?.(product);
   };
 
   return (
@@ -127,7 +131,11 @@ export function CollectionsPage({ onShowMore }: CollectionsPageProps) {
                 <>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
                     {categoryProducts.map((product) => (
-                      <div key={product.id} className="group">
+                      <div
+                        key={product.id}
+                        className="group cursor-pointer"
+                        onClick={() => handleProductClick(product)}
+                      >
                         <div className="relative aspect-[3/4] mb-4 overflow-hidden bg-gray-100 rounded">
                           <ImageWithFallback
                             src={product.image}
@@ -140,7 +148,7 @@ export function CollectionsPage({ onShowMore }: CollectionsPageProps) {
                             </div>
                           )}
                         </div>
-                        <h4 className="text-sm font-medium text-[var(--charcoal)] mb-2">
+                        <h4 className="text-sm font-medium text-[var(--charcoal)] mb-2 group-hover:text-[var(--crimson)] transition-colors">
                           {product.name}
                         </h4>
                         <p className="text-xs text-gray-500 mb-3">
@@ -170,7 +178,7 @@ export function CollectionsPage({ onShowMore }: CollectionsPageProps) {
                     No products in this collection yet.
                   </p>
                   <button
-                    onClick={() => setCurrentPage('products')}
+                    onClick={() => onShowMore?.(activeCategory)}
                     className="inline-flex items-center gap-2 text-[var(--crimson)] hover:text-[var(--charcoal)] transition-colors"
                   >
                     Browse All Products
