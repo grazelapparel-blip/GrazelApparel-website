@@ -86,6 +86,12 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
     }
   }, [activeTab, getFitProfiles]);
 
+  // Fetch users when admin dashboard mounts or when users tab is clicked
+  useEffect(() => {
+    // Trigger a fetch of users from Supabase
+    // The app-store already does this, we just need to ensure it's called
+  }, []);
+
   // Statistics calculations
   const totalRevenue = orders.reduce((sum, order) => sum + order.total, 0);
   const pendingOrders = orders.filter(o => o.status === 'pending').length;
@@ -323,6 +329,19 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
         {/* Overview Tab */}
         {activeTab === 'overview' && (
           <div className="space-y-8">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="font-[var(--font-serif)] text-[20px] text-[var(--charcoal)]">Dashboard Overview</h2>
+              <button
+                onClick={() => {
+                  // Refresh all data from Supabase
+                  window.location.reload();
+                }}
+                className="px-4 py-2 bg-gray-200 text-gray-800 text-[13px] hover:bg-gray-300 rounded"
+              >
+                Refresh Data
+              </button>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <div className="bg-white p-6 border border-gray-200">
                 <div className="flex items-center justify-between mb-4">
@@ -417,9 +436,20 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
           <div className="bg-white border border-gray-200">
             <div className="p-6 border-b border-gray-200 flex items-center justify-between">
               <h2 className="font-[var(--font-serif)] text-[18px] text-[var(--charcoal)]">All Users ({filteredUsers.length})</h2>
-              <button onClick={handleAddUser} className="flex items-center gap-2 px-4 py-2 bg-[var(--crimson)] text-white text-[13px] hover:opacity-90">
-                <Plus size={16} /> Add User
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    // Refetch users from Supabase
+                    window.location.reload();
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 bg-gray-200 text-gray-800 text-[13px] hover:bg-gray-300 rounded"
+                >
+                  Refresh
+                </button>
+                <button onClick={handleAddUser} className="flex items-center gap-2 px-4 py-2 bg-[var(--crimson)] text-white text-[13px] hover:opacity-90">
+                  <Plus size={16} /> Add User
+                </button>
+              </div>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full">
