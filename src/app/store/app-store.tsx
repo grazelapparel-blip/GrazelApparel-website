@@ -120,6 +120,9 @@ const mockOrders: Order[] = [];
 
 const mockFitProfiles: FitProfile[] = [];
 
+// Generate unique session ID for this tab/window
+const SESSION_ID = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: ReactNode }) {
@@ -133,8 +136,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return [];
   });
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
-    // Restore session from localStorage on mount
-    const saved = localStorage.getItem('currentUser');
+    // Use sessionStorage for THIS TAB ONLY (not shared across tabs)
+    const saved = sessionStorage.getItem(`currentUser_${SESSION_ID}`);
     return saved ? JSON.parse(saved) : null;
   });
   const [isAdmin, setIsAdmin] = useState(false);
@@ -142,8 +145,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   // Set up Supabase auth listener on mount
   useEffect(() => {
-    // First restore from localStorage
-    const saved = localStorage.getItem('currentUser');
+    // First restore from sessionStorage (per-tab)
+    const saved = sessionStorage.getItem(`currentUser_${SESSION_ID}`);
     if (saved) {
       try {
         setCurrentUser(JSON.parse(saved));
@@ -162,34 +165,37 @@ export function AppProvider({ children }: { children: ReactNode }) {
           joinedDate: new Date().toISOString().split('T')[0]
         };
         setCurrentUser(user);
-        localStorage.setItem('currentUser', JSON.stringify(user));
+        // Use sessionStorage - each tab has its own session
+        sessionStorage.setItem(`currentUser_${SESSION_ID}`, JSON.stringify(user));
       } else if (event === 'SIGNED_OUT' || !session) {
         setCurrentUser(null);
-        localStorage.removeItem('currentUser');
+        sessionStorage.removeItem(`currentUser_${SESSION_ID}`);
       }
     });
 
     return () => subscription?.unsubscribe();
   }, []);
 
-  // Persist current user to localStorage when it changes
+  // Persist current user to sessionStorage when it changes (per-tab only)
   useEffect(() => {
     if (currentUser) {
-      localStorage.setItem('currentUser', JSON.stringify(currentUser));
+      // Store in sessionStorage with SESSION_ID - unique per tab
+      sessionStorage.setItem(`currentUser_${SESSION_ID}`, JSON.stringify(currentUser));
 
-      // Load user-specific favorites
+      // Load user-specific favorites (uses user ID as key)
       const favKey = `favorites_${currentUser.id}`;
       const saved = localStorage.getItem(favKey);
       setFavorites(saved ? JSON.parse(saved) : []);
 
-      // Load user-specific cart items
+      // Load user-specific cart items (uses user ID as key)
       const cartKey = `cart_${currentUser.id}`;
       const cartSaved = localStorage.getItem(cartKey);
       if (cartSaved) {
         setCartItems(JSON.parse(cartSaved));
       }
     } else {
-      localStorage.removeItem('currentUser');
+      // Remove this tab's session
+      sessionStorage.removeItem(`currentUser_${SESSION_ID}`);
       // Clear favorites and cart when user logs out
       setFavorites([]);
       setCartItems([]);
