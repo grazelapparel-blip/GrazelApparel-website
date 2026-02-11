@@ -20,6 +20,7 @@ export interface Product {
 export interface CartItem extends Product {
   quantity: number;
   selectedSize: string;
+  userId?: string; // Track which user owns this cart item
 }
 
 export interface User {
@@ -70,6 +71,7 @@ interface AppState {
   cartItems: CartItem[];
   products: Product[];
   fitProfiles: FitProfile[];
+  favorites: Product[]; // Array of favorite/liked products
   currentUser: User | null;
   isAdmin: boolean;
 }
@@ -84,6 +86,11 @@ interface AppContextType extends AppState {
   setIsAdmin: (isAdmin: boolean) => void;
   updateOrderStatus: (orderId: string, status: Order['status']) => void;
   saveFitProfile: (profile: Omit<FitProfile, 'userId' | 'createdAt'>) => void;
+  // Favorite/Wishlist operations
+  toggleFavorite: (product: Product) => void;
+  isFavorite: (productId: string) => boolean;
+  removeFavorite: (productId: string) => void;
+  clearFavorites: () => void;
   // Fit Profile operations
   getFitProfiles: () => Promise<void>;
   addFitProfile: (profile: Omit<FitProfile, 'createdAt'>) => Promise<void>;
@@ -121,6 +128,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [products, setProducts] = useState<Product[]>(mockProducts);
   const [fitProfiles, setFitProfiles] = useState<FitProfile[]>(mockFitProfiles);
+  const [favorites, setFavorites] = useState<Product[]>(() => {
+    // Don't load on init - will load after user logs in
+    return [];
+  });
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
     // Restore session from localStorage on mount
     const saved = localStorage.getItem('currentUser');
@@ -165,10 +176,34 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (currentUser) {
       localStorage.setItem('currentUser', JSON.stringify(currentUser));
+
+      // Load user-specific favorites
+      const favKey = `favorites_${currentUser.id}`;
+      const saved = localStorage.getItem(favKey);
+      setFavorites(saved ? JSON.parse(saved) : []);
+
+      // Load user-specific cart items
+      const cartKey = `cart_${currentUser.id}`;
+      const cartSaved = localStorage.getItem(cartKey);
+      if (cartSaved) {
+        setCartItems(JSON.parse(cartSaved));
+      }
     } else {
       localStorage.removeItem('currentUser');
+      // Clear favorites and cart when user logs out
+      setFavorites([]);
+      setCartItems([]);
     }
   }, [currentUser]);
+
+  // Persist cart items to user-specific localStorage when they change
+  useEffect(() => {
+    if (currentUser) {
+      const userCartItems = cartItems.filter(item => item.userId === currentUser.id);
+      const cartKey = `cart_${currentUser.id}`;
+      localStorage.setItem(cartKey, JSON.stringify(userCartItems));
+    }
+  }, [cartItems, currentUser]);
 
   // Fetch products from Supabase on mount and set up real-time listener
   useEffect(() => {
@@ -280,47 +315,72 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const addToCart = (product: Product, size: string, quantity: number) => {
+    // Only add to cart if user is logged in
+    if (!currentUser) {
+      console.warn('User must be logged in to add to cart');
+      return;
+    }
+
     setCartItems(prev => {
-      const existing = prev.find(item => item.id === product.id && item.selectedSize === size);
+      // Filter to only this user's cart items
+      const userCartItems = prev.filter(item => item.userId === currentUser.id);
+      const existing = userCartItems.find(item => item.id === product.id && item.selectedSize === size);
+
       if (existing) {
+        // Update existing item for this user
         return prev.map(item =>
-          item.id === product.id && item.selectedSize === size
+          item.userId === currentUser.id && item.id === product.id && item.selectedSize === size
             ? { ...item, quantity: item.quantity + quantity }
             : item
         );
       }
-      return [...prev, { ...product, selectedSize: size, quantity }];
+
+      // Add new item with userId tracking
+      return [...prev, { ...product, selectedSize: size, quantity, userId: currentUser.id }];
     });
   };
 
   const removeFromCart = (productId: string) => {
-    setCartItems(prev => prev.filter(item => item.id !== productId));
+    if (!currentUser) return;
+    // Only remove this user's items
+    setCartItems(prev => prev.filter(item => !(item.id === productId && item.userId === currentUser.id)));
   };
 
   const updateCartQuantity = (productId: string, quantity: number) => {
+    if (!currentUser) return;
+
     if (quantity <= 0) {
       removeFromCart(productId);
       return;
     }
+
     setCartItems(prev =>
       prev.map(item =>
-        item.id === productId ? { ...item, quantity } : item
+        item.id === productId && item.userId === currentUser.id
+          ? { ...item, quantity }
+          : item
       )
     );
   };
 
   const clearCart = () => {
-    setCartItems([]);
+    if (!currentUser) return;
+    // Only clear this user's cart
+    setCartItems(prev => prev.filter(item => item.userId !== currentUser.id));
   };
 
   const createOrder = (): Order | null => {
-    if (!currentUser || cartItems.length === 0) return null;
-    
+    if (!currentUser) return null;
+
+    // Get only this user's cart items
+    const userCartItems = cartItems.filter(item => item.userId === currentUser.id);
+    if (userCartItems.length === 0) return null;
+
     const newOrder: Order = {
       id: `ORD-${String(orders.length + 1).padStart(3, '0')}`,
       userId: currentUser.id,
-      items: [...cartItems],
-      total: cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0),
+      items: [...userCartItems],
+      total: userCartItems.reduce((sum, item) => sum + item.price * item.quantity, 0),
       status: 'pending',
       createdAt: new Date().toISOString(),
       shippingAddress: currentUser.address || {
@@ -362,6 +422,47 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
       return [...prev, newProfile];
     });
+  };
+
+  // Favorite/Wishlist operations
+  const toggleFavorite = (product: Product) => {
+    if (!currentUser) return;
+
+    setFavorites(prev => {
+      const isFav = prev.some(p => p.id === product.id);
+      let updated: Product[];
+      if (isFav) {
+        updated = prev.filter(p => p.id !== product.id);
+      } else {
+        updated = [...prev, product];
+      }
+      // Save to user-specific localStorage key
+      const favKey = `favorites_${currentUser.id}`;
+      localStorage.setItem(favKey, JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const isFavorite = (productId: string): boolean => {
+    return favorites.some(p => p.id === productId);
+  };
+
+  const removeFavorite = (productId: string) => {
+    if (!currentUser) return;
+
+    setFavorites(prev => {
+      const updated = prev.filter(p => p.id !== productId);
+      const favKey = `favorites_${currentUser.id}`;
+      localStorage.setItem(favKey, JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const clearFavorites = () => {
+    if (!currentUser) return;
+    setFavorites([]);
+    const favKey = `favorites_${currentUser.id}`;
+    localStorage.removeItem(favKey);
   };
 
   // User Authentication with Supabase
@@ -796,6 +897,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         cartItems,
         products,
         fitProfiles,
+        favorites,
         currentUser,
         isAdmin,
         addToCart,
@@ -807,6 +909,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setIsAdmin,
         updateOrderStatus,
         saveFitProfile,
+        // Favorite/Wishlist operations
+        toggleFavorite,
+        isFavorite,
+        removeFavorite,
+        clearFavorites,
         // Fit Profile operations
         getFitProfiles,
         addFitProfile,

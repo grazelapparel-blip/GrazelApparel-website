@@ -1,4 +1,5 @@
 import { Heart } from 'lucide-react';
+import { useAppStore } from '../store/app-store';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 
 interface ProductCardProps {
@@ -11,9 +12,19 @@ interface ProductCardProps {
   gender?: string;
   isEssential?: boolean;
   offerPercentage?: number;
+  onQuickView?: () => void;
 }
 
-export function ProductCard({ id, name, price, image, fabric, fit, gender, isEssential, offerPercentage }: ProductCardProps) {
+export function ProductCard({ id, name, price, image, fabric, fit, gender, isEssential, offerPercentage, onQuickView }: ProductCardProps) {
+  const { toggleFavorite, isFavorite } = useAppStore();
+
+  const favorited = isFavorite(id);
+
+  const handleLikeClick = () => {
+    const product = { id, name, price, image, fabric, fit, gender, isEssential, offerPercentage };
+    toggleFavorite(product);
+  };
+
   return (
     <div className="group relative bg-white">
       {/* Image Container */}
@@ -38,10 +49,21 @@ export function ProductCard({ id, name, price, image, fabric, fit, gender, isEss
           </div>
         )}
         
-        <button className="absolute top-4 right-4 w-10 h-10 bg-white/90 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white">
-          <Heart size={18} strokeWidth={1.5} className="text-[var(--charcoal)]" />
+        <button
+          onClick={handleLikeClick}
+          className="absolute top-4 right-4 w-10 h-10 bg-white/90 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white"
+          title={favorited ? 'Remove from favorites' : 'Add to favorites'}
+        >
+          <Heart
+            size={18}
+            strokeWidth={1.5}
+            className={favorited ? 'text-[var(--crimson)] fill-[var(--crimson)]' : 'text-[var(--charcoal)]'}
+          />
         </button>
-        <button className="absolute bottom-4 left-4 right-4 h-12 bg-[var(--crimson)] text-white text-[13px] tracking-wide opacity-0 group-hover:opacity-100 transition-opacity hover:opacity-90">
+        <button
+          onClick={onQuickView}
+          className="absolute bottom-4 left-4 right-4 h-12 bg-[var(--crimson)] text-white text-[13px] tracking-wide opacity-0 group-hover:opacity-100 transition-opacity hover:opacity-90"
+        >
           Quick View
         </button>
       </div>
