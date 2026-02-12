@@ -57,12 +57,15 @@ export interface FitProfile {
   id?: string;
   userId: string;
   preferredSize: string;
-  bodyType: string;
+  bodyType?: string;
   height: string;
   weight: string;
+  chest?: string;
+  waist?: string;
+  hips?: string;
   preferredFit: 'slim' | 'regular' | 'relaxed';
   notes?: string;
-  createdAt: string;
+  createdAt?: string;
 }
 
 interface AppState {

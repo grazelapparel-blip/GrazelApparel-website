@@ -5,9 +5,10 @@ import { ImageWithFallback } from './figma/ImageWithFallback';
 
 interface CollectionsPageProps {
   onProductClick?: (product: any) => void;
+  onShowMore?: (category: string) => void;
 }
 
-export function CollectionsPage({ onProductClick }: CollectionsPageProps) {
+export function CollectionsPage({ onProductClick, onShowMore }: CollectionsPageProps) {
   const { products } = useAppStore();
 
   // Carousel state for each collection
@@ -182,6 +183,16 @@ export function CollectionsPage({ onProductClick }: CollectionsPageProps) {
                           />
                         </button>
                       ))}
+                    </div>
+
+                    {/* Show More Button */}
+                    <div className="mt-8 text-center">
+                      <button
+                        onClick={() => onShowMore?.(collection.label)}
+                        className="h-12 px-10 border border-[var(--crimson)] text-[var(--crimson)] text-[14px] tracking-wide hover:bg-[var(--crimson)] hover:text-white transition-all"
+                      >
+                        View Full {collection.label} Collection
+                      </button>
                     </div>
                   </div>
                 ) : (
