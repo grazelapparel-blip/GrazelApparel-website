@@ -10,9 +10,57 @@ if (!supabaseUrl || !supabaseAnonKey) {
   );
 }
 
+// Custom fetch with timeout to handle network issues gracefully
+async function fetchWithTimeout(
+  url: string | Request,
+  options?: RequestInit,
+  timeout = 10000
+): Promise<Response> {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeout);
+
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+    clearTimeout(id);
+    return response;
+  } catch (error: any) {
+    clearTimeout(id);
+    // Log detailed error for debugging
+    if (error.name === 'AbortError') {
+      console.error('[Supabase] Request timeout:', url);
+    } else if (error.message?.includes('ERR_NAME_NOT_RESOLVED') || error.message?.includes('ERR_NETWORK_CHANGED')) {
+      console.error('[Supabase] Network error - Supabase may be down or unreachable:', error.message);
+    } else {
+      console.error('[Supabase] Fetch error:', error);
+    }
+    throw error;
+  }
+}
+
 export const supabase = createClient(
   supabaseUrl || 'https://placeholder.supabase.co',
-  supabaseAnonKey || 'placeholder-key'
+  supabaseAnonKey || 'placeholder-key',
+  {
+    auth: {
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: true,
+      storageKey: 'sb-auth-token',
+      storage: typeof window !== 'undefined' ? window.localStorage : undefined
+    },
+    realtime: {
+      params: {
+        eventsPerSecond: 10
+      }
+    },
+    // Use custom fetch with timeout to handle network issues
+    global: {
+      fetch: fetchWithTimeout
+    }
+  }
 );
 
 // Type definitions for Supabase tables

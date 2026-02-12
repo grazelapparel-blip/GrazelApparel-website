@@ -218,33 +218,168 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   // Fetch products from Supabase on mount and set up real-time listener
   useEffect(() => {
-    fetchProductsFromSupabase();
-    fetchUsersFromSupabase();
+    let mounted = true;
+    let productSubscription: any = null;
 
-    // Set up real-time subscription for products
-    const productSubscription = supabase
-      .channel('products')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'products' },
-        () => {
-          // Refetch products when any change occurs
-          fetchProductsFromSupabase();
+    const initializeData = async () => {
+      try {
+        await fetchProductsFromSupabase();
+        await fetchUsersFromSupabase();
+
+        if (mounted && supabaseConnected) {
+          // Only set up real-time subscription if Supabase is connected
+          try {
+            productSubscription = supabase
+              .channel('products')
+              .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'products' },
+                () => {
+                  // Refetch products when any change occurs
+                  if (mounted) {
+                    fetchProductsFromSupabase();
+                  }
+                }
+              )
+              .subscribe((status) => {
+                if (status === 'SUBSCRIPTION_ERROR' || status === 'CHANNEL_ERROR') {
+                  console.warn('[Store] WebSocket subscription failed, falling back to polling');
+                  setSupabaseConnected(false);
+                }
+              });
+          } catch (err) {
+            console.warn('[Store] Could not set up WebSocket subscription:', err);
+            setSupabaseConnected(false);
+          }
         }
-      )
-      .subscribe();
+      } catch (err) {
+        console.error('[Store] Error initializing data:', err);
+      }
+    };
 
-    // Set up auto-refresh every 5 seconds as fallback
-    const interval = setInterval(() => {
-      fetchProductsFromSupabase();
-      fetchUsersFromSupabase();
+    initializeData();
+
+    // Set up polling interval as fallback (only when Supabase is disconnected)
+    const pollingInterval = setInterval(async () => {
+      if (mounted) {
+        await fetchProductsFromSupabase();
+        await fetchUsersFromSupabase();
+      }
     }, 5000);
 
     return () => {
-      clearInterval(interval);
-      productSubscription.unsubscribe();
+      mounted = false;
+      clearInterval(pollingInterval);
+      if (productSubscription) {
+        try {
+          productSubscription.unsubscribe();
+        } catch (err) {
+          console.warn('[Store] Error unsubscribing from WebSocket:', err);
+        }
+      }
     };
-  }, []);
+  }, [supabaseConnected]);
+
+  const fetchProductsFromSupabase = async () => {
+    // Mock products for fallback when Supabase is not connected
+    const mockProducts: Product[] = [
+      {
+        id: '1',
+        name: 'Tailored Wool Blazer',
+        price: 495,
+        image: 'https://images.unsplash.com/photo-1593642532400-2682a8a6b289?w=400&h=500&fit=crop',
+        fabric: 'Wool',
+        fit: 'Regular Fit',
+        category: 'Men',
+        gender: 'Male',
+        isEssential: false,
+        offerPercentage: 15
+      },
+      {
+        id: '2',
+        name: 'Silk Evening Dress',
+        price: 675,
+        image: 'https://images.unsplash.com/photo-1595777707802-08422fc4a3e6?w=400&h=500&fit=crop',
+        fabric: 'Silk',
+        fit: 'Slim Fit',
+        category: 'Women',
+        gender: 'Female',
+        isEssential: false,
+        offerPercentage: 10
+      },
+      {
+        id: '3',
+        name: 'Cashmere Roll Neck',
+        price: 385,
+        image: 'https://images.unsplash.com/photo-1591047990375-cd5d08cfd58a?w=400&h=500&fit=crop',
+        fabric: 'Cashmere',
+        fit: 'Regular Fit',
+        category: 'Men',
+        gender: 'Male',
+        isEssential: false,
+        offerPercentage: 0
+      },
+      {
+        id: '4',
+        name: 'Cotton Oxford Shirt',
+        price: 145,
+        image: 'https://images.unsplash.com/photo-1596362051609-b370a1c159a7?w=400&h=500&fit=crop',
+        fabric: 'Cotton',
+        fit: 'Slim Fit',
+        category: 'Men',
+        gender: 'Male',
+        isEssential: true,
+        offerPercentage: 20
+      },
+      {
+        id: '5',
+        name: 'Wool Dress Trousers',
+        price: 225,
+        image: 'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=400&h=500&fit=crop',
+        fabric: 'Wool',
+        fit: 'Regular Fit',
+        category: 'Men',
+        gender: 'Male',
+        isEssential: false,
+        offerPercentage: 12
+      },
+      {
+        id: '6',
+        name: 'Cashmere Overcoat',
+        price: 895,
+        image: 'https://images.unsplash.com/photo-1539533057592-4c691c1270f0?w=400&h=500&fit=crop',
+        fabric: 'Cashmere',
+        fit: 'Regular Fit',
+        category: 'Women',
+        gender: 'Female',
+        isEssential: false,
+        offerPercentage: 0
+      },
+      {
+        id: '7',
+        name: 'Linen Summer Shirt',
+        price: 99,
+        image: 'https://images.unsplash.com/photo-1597622424447-d3935a1f0d44?w=400&h=500&fit=crop',
+        fabric: 'Linen',
+        fit: 'Relaxed Fit',
+        category: 'Men',
+        gender: 'Male',
+        isEssential: true,
+        offerPercentage: 25
+      },
+      {
+        id: '8',
+        name: 'Silk Blouse',
+        price: 189,
+        image: 'https://images.unsplash.com/photo-1595348625778-3f52b86b7f2e?w=400&h=500&fit=crop',
+        fabric: 'Silk',
+        fit: 'Slim Fit',
+        category: 'Women',
+        gender: 'Female',
+        isEssential: false,
+        offerPercentage: 18
+      }
+    ];
 
   const fetchProductsFromSupabase = async () => {
     // Mock products for fallback when Supabase is not connected
@@ -348,21 +483,35 @@ export function AppProvider({ children }: { children: ReactNode }) {
     ];
 
     try {
+      // Create an abort controller with 15-second timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
+
       const { data, error } = await supabase
         .from('products')
         .select('*')
         .eq('is_active', true)
         .order('created_at', { ascending: false });
 
-      if (error || !data || data.length === 0) {
-        console.warn('Supabase connection issue or no products. Using mock products.');
+      clearTimeout(timeoutId);
+
+      if (error) {
+        console.error('[Store] Supabase error fetching products:', error.message || error);
         setSupabaseConnected(false);
-        // Use mock products as fallback
         setProducts(mockProducts);
         return;
       }
 
+      if (!data || data.length === 0) {
+        console.warn('[Store] No products found in Supabase, using mock products.');
+        setSupabaseConnected(false);
+        setProducts(mockProducts);
+        return;
+      }
+
+      // Successfully fetched from Supabase
       setSupabaseConnected(true);
+      console.log('[Store] Successfully fetched products from Supabase');
 
       // Convert Supabase products to app format
       const supabaseProducts = data.map((p: any) => ({
@@ -382,22 +531,44 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
       setProducts(supabaseProducts);
     } catch (err: any) {
-      console.warn('Failed to fetch products from Supabase. Using mock products:', err?.message);
+      // Detailed error logging for debugging
+      const errorMsg = err?.message || err?.toString() || 'Unknown error';
+
+      if (errorMsg.includes('ERR_NAME_NOT_RESOLVED')) {
+        console.error('[Store] DNS resolution failed - Supabase domain cannot be resolved');
+        console.error('[Store] Possible causes:');
+        console.error('  1. Supabase project may be deleted or inactive');
+        console.error('  2. Network DNS issues');
+        console.error('  3. Firewall/Network restrictions');
+      } else if (errorMsg.includes('ERR_NETWORK_CHANGED') || errorMsg.includes('NetworkError')) {
+        console.error('[Store] Network connection issue - unable to reach Supabase');
+      } else if (errorMsg.includes('AbortError')) {
+        console.error('[Store] Supabase request timeout - server not responding');
+      } else {
+        console.error('[Store] Failed to fetch products from Supabase:', errorMsg);
+      }
+
       setSupabaseConnected(false);
-      // Use mock products as fallback when error
       setProducts(mockProducts);
     }
+  };
   };
 
   const fetchUsersFromSupabase = async () => {
     try {
+      // Create an abort controller with 15-second timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
+
       const { data, error } = await supabase
         .from('users')
         .select('*')
         .order('joined_date', { ascending: false });
 
+      clearTimeout(timeoutId);
+
       if (error) {
-        console.warn('Supabase connection issue. Could not fetch users.');
+        console.error('[Store] Supabase error fetching users:', error.message || error);
         return;
       }
 
@@ -411,10 +582,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
           joinedDate: u.joined_date
         }));
         
+        console.log('[Store] Successfully fetched users from Supabase');
         setUsers(supabaseUsers);
       }
     } catch (err: any) {
-      console.warn('Failed to fetch users from Supabase:', err?.message);
+      const errorMsg = err?.message || err?.toString() || 'Unknown error';
+
+      if (errorMsg.includes('ERR_NAME_NOT_RESOLVED')) {
+        console.error('[Store] Cannot fetch users: DNS resolution failed');
+      } else if (errorMsg.includes('AbortError')) {
+        console.error('[Store] Cannot fetch users: Request timeout');
+      } else {
+        console.error('[Store] Failed to fetch users from Supabase:', errorMsg);
+      }
       // Keep existing users
     }
   };
