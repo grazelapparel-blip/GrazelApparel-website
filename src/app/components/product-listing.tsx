@@ -54,7 +54,7 @@ export function ProductListing({ onProductClick, initialFilter, onFilterApplied 
           essentials: true,
           newIn: false
         }));
-      } else if (type === 'new_in') {
+      } else if (type === 'newIn' || type === 'new_in') {
         setSelectedFilters(prev => ({
           ...prev,
           category: [],

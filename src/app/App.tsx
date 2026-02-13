@@ -14,9 +14,44 @@ import { ImageWithFallback } from './components/figma/ImageWithFallback';
 import { CollectionsPage } from './components/collections-page';
 import { AppProvider, useAppStore } from './store/app-store';
 
+// Centralized Routes Configuration Array
+export const routes = [
+  { path: '/', page: 'home', label: 'Home' },
+  { path: '/men', page: 'products', label: 'Men', filter: { type: 'gender', value: 'Men' } },
+  { path: '/women', page: 'products', label: 'Women', filter: { type: 'gender', value: 'Women' } },
+  { path: '/products', page: 'products', label: 'All Products' },
+  { path: '/essentials', page: 'products', label: 'Essentials', filter: { type: 'essentials', value: 'true' } },
+  { path: '/new-in', page: 'products', label: 'New In', filter: { type: 'newIn', value: 'true' } },
+  { path: '/collections', page: 'collections', label: 'Collections' },
+  { path: '/cart', page: 'cart', label: 'Cart' },
+  { path: '/fit-intelligence', page: 'fit', label: 'Fit Intelligence' },
+  { path: '/admin', page: 'admin', label: 'Admin Dashboard', protected: true },
+  { path: '/admin-login', page: 'admin-login', label: 'Admin Login' },
+] as const;
+
+type PageType = 'home' | 'products' | 'product' | 'fit' | 'cart' | 'admin-login' | 'admin' | 'collections';
+
+// Helper function to get current route from URL hash
+function getRouteFromHash(): { page: PageType; filter?: { type: string; value: string } } {
+  const hash = window.location.hash.slice(1) || '/'; // Remove # and default to /
+  const route = routes.find(r => r.path === hash);
+  if (route) {
+    return { page: route.page as PageType, filter: route.filter as { type: string; value: string } | undefined };
+  }
+  return { page: 'home' };
+}
+
+// Helper function to navigate to a route
+export function navigateTo(path: string) {
+  window.location.hash = path;
+}
+
 function AppContent() {
   const { currentUser, logoutUser, products, addToCart } = useAppStore();
-  const [currentPage, setCurrentPage] = useState<'home' | 'products' | 'product' | 'fit' | 'cart' | 'admin-login' | 'admin' | 'collections'>('home');
+  
+  // Initialize page from URL hash
+  const initialRoute = getRouteFromHash();
+  const [currentPage, setCurrentPage] = useState<PageType>(initialRoute.page);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(() => {
     // Check localStorage for persistent admin session
@@ -25,7 +60,9 @@ function AppContent() {
   });
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const [pendingAction, setPendingAction] = useState<'cart' | 'wishlist' | null>(null);
-  const [initialFilter, setInitialFilter] = useState<{ type: string; value: string; gender?: string } | null>(null);
+  const [initialFilter, setInitialFilter] = useState<{ type: string; value: string; gender?: string } | null>(
+    initialRoute.filter || null
+  );
   const [quickViewProduct, setQuickViewProduct] = useState<any>(null);
 
   // Get first 4 products as featured
@@ -40,23 +77,31 @@ function AppContent() {
     }
   }, [isAdminLoggedIn]);
 
-  // Check URL for admin access
+  // Handle URL hash changes for routing
   useEffect(() => {
-    const checkAdminRoute = () => {
-      const hash = window.location.hash;
-      if (hash === '#/admin' || hash === '#admin') {
-        // If already logged in, go to dashboard; otherwise show login
+    const handleHashChange = () => {
+      const { page, filter } = getRouteFromHash();
+      
+      // Handle admin routes
+      if (page === 'admin') {
         if (isAdminLoggedIn) {
           setCurrentPage('admin');
         } else {
           setCurrentPage('admin-login');
         }
+        return;
+      }
+      
+      setCurrentPage(page);
+      if (filter) {
+        setInitialFilter(filter);
+      } else {
+        setInitialFilter(null);
       }
     };
     
-    checkAdminRoute();
-    window.addEventListener('hashchange', checkAdminRoute);
-    return () => window.removeEventListener('hashchange', checkAdminRoute);
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
   }, [isAdminLoggedIn]);
 
   // Show admin login page (separate from user site)
@@ -65,11 +110,11 @@ function AppContent() {
       <AdminLogin 
         onLogin={() => {
           setIsAdminLoggedIn(true);
-          setCurrentPage('admin');
+          navigateTo('/admin');
         }}
         onBack={() => {
-          window.location.hash = '';
-          setCurrentPage('home');
+          setIsAdminLoggedIn(false);
+          navigateTo('/');
         }}
       />
     );
@@ -81,8 +126,7 @@ function AppContent() {
       <AdminDashboard 
         onBack={() => {
           setIsAdminLoggedIn(false);
-          window.location.hash = '';
-          setCurrentPage('home');
+          navigateTo('/');
         }} 
       />
     );
@@ -92,7 +136,7 @@ function AppContent() {
     <div className="min-h-screen flex flex-col bg-[var(--cream)]">
       <Header 
         onLogout={logoutUser}
-        onSearch={() => setCurrentPage('products')}
+        onSearch={() => navigateTo('/products')}
         onWishlist={() => {
           if (!currentUser) {
             setShowLoginPrompt(true);
@@ -106,21 +150,28 @@ function AppContent() {
             setShowLoginPrompt(true);
             setPendingAction('cart');
           } else {
-            setCurrentPage('cart');
+            navigateTo('/cart');
           }
         }}
-        onProducts={() => setCurrentPage('products')}
+        onProducts={() => navigateTo('/products')}
         onNavigation={(category) => {
           if (category === 'collections') {
-            setCurrentPage('collections');
+            navigateTo('/collections');
+          } else if (category === 'Men') {
+            navigateTo('/men');
+          } else if (category === 'Women') {
+            navigateTo('/women');
+          } else if (category === 'Essentials') {
+            navigateTo('/essentials');
+          } else if (category === 'New In') {
+            navigateTo('/new-in');
           } else {
-            setInitialFilter(null);
-            setCurrentPage('products');
+            navigateTo('/products');
           }
         }}
         onFilterNavigation={(filterType, filterValue, gender) => {
           setInitialFilter({ type: filterType, value: filterValue, gender });
-          setCurrentPage('products');
+          navigateTo('/products');
         }}
       />
       
@@ -143,7 +194,7 @@ function AppContent() {
                   Discover our new collection of meticulously crafted pieces, designed for those who value enduring quality and refined simplicity.
                 </p>
                 <button 
-                  onClick={() => setCurrentPage('products')}
+                  onClick={() => navigateTo('/products')}
                   className="h-14 px-12 bg-[var(--crimson)] text-white text-[14px] tracking-wide hover:opacity-90 transition-opacity"
                 >
                   Explore Collection
@@ -173,7 +224,7 @@ function AppContent() {
 
             <div className="text-center mt-12">
               <button 
-                onClick={() => setCurrentPage('products')}
+                onClick={() => navigateTo('/products')}
                 className="h-12 px-10 border border-[var(--crimson)] text-[var(--crimson)] text-[14px] tracking-wide hover:bg-[var(--crimson)] hover:text-white transition-all"
               >
                 View All Products
@@ -247,7 +298,7 @@ function AppContent() {
           onProductClick={(product) => setQuickViewProduct(product)}
           onShowMore={(category) => {
             setInitialFilter({ type: 'category', value: category });
-            setCurrentPage('products');
+            navigateTo('/products');
           }}
         />
       )}
@@ -261,7 +312,7 @@ function AppContent() {
               setPendingAction(null);
               return;
             }
-            setCurrentPage('fit');
+            navigateTo('/fit-intelligence');
           }}
           onAddToCart={(product, size, quantity) => {
             if (!currentUser) {
@@ -270,7 +321,7 @@ function AppContent() {
               return;
             }
             addToCart(product, size, quantity);
-            setCurrentPage('cart');
+            navigateTo('/cart');
           }}
         />
       )}
@@ -289,7 +340,7 @@ function AppContent() {
       )}
 
       {currentPage === 'cart' && currentUser && (
-        <CartCheckout onContinueShopping={() => setCurrentPage('products')} />
+        <CartCheckout onContinueShopping={() => navigateTo('/products')} />
       )}
 
       {/* Quick View Modal */}
@@ -315,7 +366,7 @@ function AppContent() {
                 }
                 setSelectedProduct(quickViewProduct);
                 setQuickViewProduct(null);
-                setCurrentPage('fit');
+                navigateTo('/fit-intelligence');
               }}
               onAddToCart={(product, size, quantity) => {
                 if (!currentUser) {
@@ -326,7 +377,7 @@ function AppContent() {
                 }
                 addToCart(product, size, quantity);
                 setQuickViewProduct(null);
-                setCurrentPage('cart');
+                navigateTo('/cart');
               }}
             />
           </div>
@@ -365,7 +416,7 @@ function AppContent() {
                   setShowLoginPrompt(false);
                   setPendingAction(null);
                   if (pendingAction === 'cart') {
-                    setCurrentPage('cart');
+                    navigateTo('/cart');
                   }
                 }}
               />

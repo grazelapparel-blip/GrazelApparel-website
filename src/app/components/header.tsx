@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Search, Heart, User, ShoppingBag, Menu, X, LogOut } from 'lucide-react';
 import { useAppStore } from '../store/app-store';
 import { UserAuth } from './user-auth';
+import { routes, navigateTo } from '../App';
 
 interface HeaderProps {
   onLogout?: () => void | Promise<void>;
@@ -24,7 +25,8 @@ export function Header({ onLogout, onSearch, onWishlist, onCart, onProducts, onN
 
   const navItems = [
     { 
-      label: 'Men', 
+      label: 'Men',
+      path: '/men',
       subcategories: {
         'Categories': ['Shirts', 'Trousers', 'Knitwear', 'Outerwear', 'Suits'],
         'Fabric': ['Cotton', 'Linen', 'Wool', 'Cashmere', 'Silk'],
@@ -33,7 +35,8 @@ export function Header({ onLogout, onSearch, onWishlist, onCart, onProducts, onN
       }
     },
     { 
-      label: 'Women', 
+      label: 'Women',
+      path: '/women',
       subcategories: {
         'Categories': ['Dresses', 'Blouses', 'Trousers', 'Knitwear', 'Outerwear'],
         'Fabric': ['Cotton', 'Linen', 'Wool', 'Cashmere', 'Silk'],
@@ -41,9 +44,9 @@ export function Header({ onLogout, onSearch, onWishlist, onCart, onProducts, onN
         'Occasion': ['Casual', 'Business', 'Evening', 'Weekend']
       }
     },
-    { label: 'Essentials' },
-    { label: 'New In' },
-    { label: 'Collections' }
+    { label: 'Essentials', path: '/essentials' },
+    { label: 'New In', path: '/new-in' },
+    { label: 'Collections', path: '/collections' }
   ];
 
   return (
@@ -108,9 +111,12 @@ export function Header({ onLogout, onSearch, onWishlist, onCart, onProducts, onN
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <div className="flex-shrink-0">
-            <a href="/" className="font-[var(--font-serif)] text-[22px] tracking-wide text-[var(--charcoal)]">
+            <button 
+              onClick={() => navigateTo('/')} 
+              className="font-[var(--font-serif)] text-[22px] trackingn-wide text-[var(--charcoal)] bg-transparent border-none cursor-pointer"
+            >
               GRAZEL APPAREL
-            </a>
+            </button>
           </div>
 
           {/* Desktop Navigation */}
@@ -123,16 +129,9 @@ export function Header({ onLogout, onSearch, onWishlist, onCart, onProducts, onN
               >
                 <button
                   onClick={() => {
-                    if (item.label === 'Essentials') {
-                      onFilterNavigation?.('essentials', 'true');
-                    } else if (item.label === 'New In') {
-                      onFilterNavigation?.('new_in', 'true');
-                    } else if (item.label === 'Collections') {
-                      // Navigate to collections page
-                      onNavigation?.('collections');
-                    } else if (item.label === 'Men' || item.label === 'Women') {
-                      // Filter products by gender
-                      onFilterNavigation?.('gender', item.label);
+                    // Use direct URL navigation with routes
+                    if (item.path) {
+                      navigateTo(item.path);
                     } else {
                       onNavigation?.(item.label);
                     }
@@ -273,12 +272,9 @@ export function Header({ onLogout, onSearch, onWishlist, onCart, onProducts, onN
                 <button
                   key={item.label}
                   onClick={() => {
-                    if (item.label === 'Essentials') {
-                      onFilterNavigation?.('essentials', 'true');
-                    } else if (item.label === 'New In') {
-                      onFilterNavigation?.('new_in', 'true');
-                    } else if (item.label === 'Collections') {
-                      onNavigation?.('collections');
+                    // Use direct URL navigation with routes
+                    if (item.path) {
+                      navigateTo(item.path);
                     } else {
                       onNavigation?.(item.label);
                     }
