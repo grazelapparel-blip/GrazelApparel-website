@@ -88,7 +88,7 @@ export function UserAuth({ onSuccess }: UserAuthProps) {
     } catch (err: any) {
       console.error('Signup error:', err);
       if (err.message?.includes('rate limit')) {
-        setError('Too many attempts. Please wait a few minutes and try again.');
+        setError('Email rate limit exceeded. Please wait 1 hour or try a different email address.');
       } else if (err.message?.includes('already registered')) {
         setError('Email already registered. Please login instead.');
       } else {
@@ -173,16 +173,15 @@ export function UserAuth({ onSuccess }: UserAuthProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[var(--cream)] to-gray-100 flex items-center justify-center px-4">
-      <div className="w-full max-w-md">
-        {/* Logo/Brand */}
-        <div className="text-center mb-12">
-          <h1 className="font-[var(--font-serif)] text-4xl text-[var(--charcoal)] mb-2">Grazelapparel</h1>
-          <p className="text-gray-600 text-sm tracking-wide">Old Money Luxury Apparel</p>
-        </div>
+    <div className="w-full max-w-md mx-auto">
+      {/* Logo/Brand */}
+      <div className="text-center mb-8">
+        <h1 className="font-[var(--font-serif)] text-3xl text-[var(--charcoal)] mb-2">Grazelapparel</h1>
+        <p className="text-gray-600 text-sm tracking-wide">Old Money Luxury Apparel</p>
+      </div>
 
-        {/* Auth Card */}
-        <div className="bg-white rounded-lg shadow-lg p-8 border border-gray-200">
+      {/* Auth Card */}
+      <div className="bg-white rounded-lg p-6">
           
           {/* Signup Success Step */}
           {step === 'signup-success' && (
@@ -389,10 +388,9 @@ export function UserAuth({ onSuccess }: UserAuthProps) {
         </div>
 
         {/* Footer */}
-        <p className="text-center text-xs text-gray-600 mt-6">
+        <p className="text-center text-xs text-gray-600 mt-4">
           Your personal shopping history and fit profile are saved securely
         </p>
       </div>
-    </div>
   );
 }

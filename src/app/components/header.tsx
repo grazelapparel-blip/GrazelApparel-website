@@ -292,14 +292,14 @@ export function Header({ onLogout, onSearch, onWishlist, onCart, onProducts, onN
 
       {showLoginModal && (
         <div className="fixed inset-0 bg-black/40 z-[100] flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-[var(--cream)] rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto relative">
             <button
               onClick={() => setShowLoginModal(false)}
-              className="float-right p-4 hover:bg-gray-100 text-gray-500"
+              className="absolute top-3 right-3 p-2 hover:bg-gray-100 text-gray-500 rounded-full z-10"
             >
-              <X size={24} />
+              <X size={20} />
             </button>
-            <div className="p-8 pt-4">
+            <div className="p-6">
               <UserAuth onSuccess={() => setShowLoginModal(false)} />
             </div>
           </div>
