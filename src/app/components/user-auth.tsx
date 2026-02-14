@@ -64,22 +64,21 @@ export function UserAuth({ onSuccess }: UserAuthProps) {
 
       // Removed identities check - allows re-registration of deleted users with same email
       if (data.user) {
-        // Store new user in Supabase users table
-        // Use upsert with onConflict to handle re-registration
-        try {
-          await supabase
-            .from('users')
-            .upsert([
-              {
-                id: data.user.id,
-                email: formData.email,
-                name: formData.name,
-                joined_date: new Date().toISOString()
-              }
-            ], { onConflict: 'id' });
-        } catch (dbErr) {
-          console.error('Error storing user in database:', dbErr);
-          // Even if DB insert fails, auth was successful
+        // Store new user in Supabase users table (optional - RLS may block this)
+        const { error: dbError } = await supabase
+          .from('users')
+          .upsert([
+            {
+              id: data.user.id,
+              email: formData.email,
+              name: formData.name,
+              joined_date: new Date().toISOString()
+            }
+          ], { onConflict: 'id' });
+        
+        if (dbError) {
+          // RLS policy may block this - that's okay, auth still works
+          console.warn('Could not store user profile (RLS):', dbError.message);
         }
 
         // Account created - show success and prompt to login
@@ -94,6 +93,28 @@ export function UserAuth({ onSuccess }: UserAuthProps) {
       } else {
         setError(err.message || 'Failed to create account. Please try again.');
       }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle Google OAuth
+  const handleGoogleSignIn = async () => {
+    setError('');
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: typeof window !== 'undefined' ? window.location.origin : undefined }
+      });
+
+      if (error) throw error;
+      // Note: Supabase will redirect to Google for OAuth flow. If using a popup flow,
+      // handle the response here. The app's auth listener will pick up the session after redirect.
+      return data;
+    } catch (err: any) {
+      console.error('Google sign-in error:', err);
+      setError(err?.message || 'Google sign-in failed.');
     } finally {
       setLoading(false);
     }
@@ -128,20 +149,21 @@ export function UserAuth({ onSuccess }: UserAuthProps) {
           joinedDate: new Date().toISOString().split('T')[0]
         };
         
-        // Store user login in Supabase users table
-        try {
-          await supabase
-            .from('users')
-            .upsert([
-              {
-                id: data.user.id,
-                email: newUser.email,
-                name: newUser.name,
-                joined_date: newUser.joinedDate
-              }
-            ], { onConflict: 'id' });
-        } catch (dbErr) {
-          console.error('Error storing user in database:', dbErr);
+        // Store user login in Supabase users table (optional - RLS may block this)
+        const { error: dbError } = await supabase
+          .from('users')
+          .upsert([
+            {
+              id: data.user.id,
+              email: newUser.email,
+              name: newUser.name,
+              joined_date: newUser.joinedDate
+            }
+          ], { onConflict: 'id' });
+        
+        if (dbError) {
+          // RLS policy may block this - that's okay, auth still works
+          console.warn('Could not store user profile (RLS):', dbError.message);
         }
         
         setCurrentUser(newUser);
@@ -246,11 +268,24 @@ export function UserAuth({ onSuccess }: UserAuthProps) {
               <h2 className="font-[var(--font-serif)] text-2xl text-[var(--charcoal)] mb-2">
                 {isLogin ? 'Welcome Back' : 'Create Account'}
               </h2>
-              <p className="text-gray-600 text-sm mb-6">
+              <p className="text-gray-600 text-sm mb-4">
                 {isLogin 
                   ? 'Sign in with your email and password' 
                   : 'Create your account to start shopping'}
               </p>
+
+              {/* OAuth Button */}
+              <div className="mb-4">
+                <button
+                  type="button"
+                  onClick={handleGoogleSignIn}
+                  disabled={loading}
+                  className="w-full h-12 flex items-center justify-center gap-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  <span className="w-6 h-6 rounded-full bg-white border flex items-center justify-center text-[12px] font-semibold">G</span>
+                  <span className="text-sm">Continue with Google</span>
+                </button>
+              </div>
 
               {/* Error Message */}
               {error && (

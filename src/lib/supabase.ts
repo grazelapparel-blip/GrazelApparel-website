@@ -14,7 +14,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
 async function fetchWithTimeout(
   url: string | Request,
   options?: RequestInit,
-  timeout = 10000
+  timeout = 30000
 ): Promise<Response> {
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeout);

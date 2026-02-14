@@ -246,8 +246,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
               )
               .subscribe((status) => {
                 if (status === 'SUBSCRIPTION_ERROR' || status === 'CHANNEL_ERROR') {
-                  console.warn('[Store] WebSocket subscription failed, falling back to polling');
-                  setSupabaseConnected(false);
+                  console.warn('[Store] WebSocket subscription failed - realtime updates disabled');
+                  // Don't set supabaseConnected to false - REST API still works
                 }
               });
           } catch (err) {
@@ -275,24 +275,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }
       }
     };
-  }, [supabaseConnected]);
+  }, []); // Only run on mount - removed supabaseConnected to prevent infinite loop
 
   const fetchProductsFromSupabase = async () => {
     // Empty mock products - products will come from Supabase only
     const mockProducts: Product[] = [];
 
     try {
-      // Create an abort controller with 15-second timeout
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000);
-
       const { data, error } = await supabase
         .from('products')
         .select('*')
         .or('is_active.eq.true,is_active.is.null')
         .order('created_at', { ascending: false });
-
-      clearTimeout(timeoutId);
 
       if (error) {
         console.error('[Store] Supabase error fetching products:', error.message || error);
