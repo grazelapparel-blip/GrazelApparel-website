@@ -110,7 +110,8 @@ function AppContent() {
       <AdminLogin 
         onLogin={() => {
           setIsAdminLoggedIn(true);
-          navigateTo('/admin');
+          setCurrentPage('admin');
+          window.location.hash = '/admin';
         }}
         onBack={() => {
           setIsAdminLoggedIn(false);
@@ -336,6 +337,7 @@ function AppContent() {
             }
             setCurrentPage('product');
           }}
+          product={selectedProduct}
         />
       )}
 

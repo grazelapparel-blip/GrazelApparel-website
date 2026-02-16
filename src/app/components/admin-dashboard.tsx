@@ -16,7 +16,8 @@ import {
   XCircle,
   Plus,
   X,
-  Save
+  Save,
+  Tag
 } from 'lucide-react';
 import { useAppStore, User, Order, FitProfile, Product } from '../store/app-store';
 import { ImageWithFallback } from './figma/ImageWithFallback';
@@ -25,7 +26,7 @@ interface AdminDashboardProps {
   onBack: () => void;
 }
 
-type TabType = 'overview' | 'users' | 'orders' | 'products' | 'fit-profiles';
+type TabType = 'overview' | 'users' | 'orders' | 'categories' | 'products' | 'fit-profiles';
 
 // Modal Component
 function Modal({ isOpen, onClose, title, children }: { isOpen: boolean; onClose: () => void; title: string; children: React.ReactNode }) {
@@ -67,13 +68,33 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   
+  // Category management state
+  const [categories, setCategories] = useState<string[]>(["Shirts", "Trousers", "Knitwear", "Outerwear", "Dresses"]);
+  const [newCategory, setNewCategory] = useState("");
+
   // Form states
   const [productForm, setProductForm] = useState({
-    name: '', price: '', image: '', fabric: '', fit: '', category: '', size: '', gender: '', isEssential: false, isHighlight: false, offerPercentage: '', season: '', festival: ''
+    name: '', price: '', image: '', fabric: '', fit: '', category: '', size: '', gender: '', isEssential: false, isHighlight: false, isTop: false, isBottom: false, offerPercentage: '', season: '', festival: ''
   });
   const [userForm, setUserForm] = useState({
     name: '', email: '', phone: '', street: '', city: '', postcode: '', country: 'United Kingdom'
   });
+
+  // Category management handlers
+  const handleAddCategory = () => {
+    const cat = newCategory.trim();
+    if (cat && !categories.includes(cat)) {
+      setCategories([...categories, cat]);
+      setNewCategory("");
+    }
+  };
+  const handleDeleteCategory = (cat: string) => {
+    setCategories(categories.filter(c => c !== cat));
+    // If the deleted category is selected in the form, clear it
+    if (productForm.category === cat) {
+      setProductForm({ ...productForm, category: "" });
+    }
+  };
 
   // Fetch fit profiles on component mount and when tab is active
   useEffect(() => {
@@ -142,7 +163,7 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
   // Product CRUD handlers
   const handleAddProduct = () => {
     setEditingProduct(null);
-    setProductForm({ name: '', price: '', image: '', fabric: '', fit: '', category: '', size: '', gender: '', isEssential: false, isHighlight: false, offerPercentage: '', season: '', festival: '' });
+    setProductForm({ name: '', price: '', image: '', fabric: '', fit: '', category: '', size: '', gender: '', isEssential: false, isHighlight: false, isTop: false, isBottom: false, offerPercentage: '', season: '', festival: '' });
     setShowProductModal(true);
   };
 
@@ -159,6 +180,8 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
       gender: product.gender || '',
       isEssential: product.isEssential || false,
       isHighlight: product.isHighlight || false,
+      isTop: product.isTop || false,
+      isBottom: product.isBottom || false,
       offerPercentage: String(product.offerPercentage || ''),
       season: product.season || '',
       festival: product.festival || ''
@@ -178,6 +201,8 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
       gender: productForm.gender,
       isEssential: productForm.isEssential,
       isHighlight: productForm.isHighlight,
+      isTop: productForm.isTop,
+      isBottom: productForm.isBottom,
       offerPercentage: Number(productForm.offerPercentage) || 0,
       season: productForm.season,
       festival: productForm.festival,
@@ -274,6 +299,7 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
     { id: 'overview' as TabType, label: 'Overview', icon: BarChart3 },
     { id: 'users' as TabType, label: 'Users', icon: Users },
     { id: 'orders' as TabType, label: 'Orders', icon: ShoppingCart },
+    { id: 'categories' as TabType, label: 'Categories', icon: Tag },
     { id: 'products' as TabType, label: 'Products', icon: Package },
     { id: 'fit-profiles' as TabType, label: 'Fit Profiles', icon: Ruler }
   ];
@@ -630,6 +656,56 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
           </div>
         )}
 
+        {/* Categories Tab */}
+        {activeTab === 'categories' && (
+          <div className="bg-white border border-gray-200">
+            <div className="p-6 border-b border-gray-200">
+              <h2 className="font-[var(--font-serif)] text-[18px] text-[var(--charcoal)]">Manage Categories</h2>
+              <p className="text-gray-500 text-sm mt-1">Add or remove product categories</p>
+            </div>
+            <div className="p-6">
+              <div className="flex gap-3 mb-6">
+                <input
+                  type="text"
+                  value={newCategory}
+                  onChange={e => setNewCategory(e.target.value)}
+                  placeholder="Enter new category name"
+                  className="flex-1 h-10 px-4 border border-gray-200 text-[14px] focus:outline-none focus:border-[var(--crimson)]"
+                  onKeyPress={(e) => e.key === 'Enter' && handleAddCategory()}
+                />
+                <button
+                  onClick={handleAddCategory}
+                  disabled={!newCategory.trim() || categories.includes(newCategory.trim())}
+                  className="flex items-center gap-2 px-4 py-2 bg-[var(--crimson)] text-white text-[13px] hover:opacity-90 disabled:opacity-50"
+                >
+                  <Plus size={16} /> Add Category
+                </button>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {categories.map(cat => (
+                  <div key={cat} className="flex items-center justify-between bg-gray-50 border border-gray-200 px-4 py-3 rounded">
+                    <span className="text-[14px] text-[var(--charcoal)]">{cat}</span>
+                    <button 
+                      onClick={() => handleDeleteCategory(cat)} 
+                      className="text-red-500 hover:text-red-700 p-1"
+                      title="Delete category"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+              {categories.length === 0 && (
+                <div className="text-center py-12 text-gray-500">
+                  <Package size={48} className="mx-auto mb-4 opacity-50" />
+                  <p>No categories yet</p>
+                  <p className="text-sm">Add your first category above</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Products Tab */}
         {activeTab === 'products' && (
           <div className="bg-white border border-gray-200">
@@ -824,13 +900,12 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
                 className="w-full h-10 px-3 border border-gray-200 text-[14px] focus:outline-none focus:border-[var(--crimson)]"
               >
                 <option value="">Select category</option>
-                <option value="Shirts">Shirts</option>
-                <option value="Trousers">Trousers</option>
-                <option value="Knitwear">Knitwear</option>
-                <option value="Outerwear">Outerwear</option>
-                <option value="Dresses">Dresses</option>
+                {categories.map((cat) => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
               </select>
             </div>
+
           </div>
           <div>
             <label className="block text-[14px] text-[var(--charcoal)] mb-2">Image URL</label>
@@ -917,6 +992,30 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
             />
             <label htmlFor="isHighlight" className="text-[14px] text-[var(--charcoal)] cursor-pointer">
               Show in Highlight (Men & Women Collections)
+            </label>
+          </div>
+          <div className="flex items-center gap-3">
+            <input
+              type="checkbox"
+              id="isTop"
+              checked={productForm.isTop}
+              onChange={(e) => setProductForm({ ...productForm, isTop: e.target.checked })}
+              className="w-4 h-4"
+            />
+            <label htmlFor="isTop" className="text-[14px] text-[var(--charcoal)] cursor-pointer">
+              Top (Enable Curate Your Fit - Chest, Shoulder, etc.)
+            </label>
+          </div>
+          <div className="flex items-center gap-3">
+            <input
+              type="checkbox"
+              id="isBottom"
+              checked={productForm.isBottom}
+              onChange={(e) => setProductForm({ ...productForm, isBottom: e.target.checked })}
+              className="w-4 h-4"
+            />
+            <label htmlFor="isBottom" className="text-[14px] text-[var(--charcoal)] cursor-pointer">
+              Bottom (Enable Curate Your Fit - Waist, Thigh, Inseam, etc.)
             </label>
           </div>
           <div>

@@ -1,18 +1,21 @@
 import { useState } from 'react';
-import { ArrowLeft, Check, Upload, X } from 'lucide-react';
-import { useAppStore } from '../store/app-store';
+import { ArrowLeft, Check, Upload, X, Ruler } from 'lucide-react';
+import { useAppStore, Product } from '../store/app-store';
 
 interface FitIntelligenceProps {
   onClose: () => void;
   onComplete: (recommendedSize: string) => void;
+  product?: Product | null;
 }
 
-type Step = 'intro' | 'measurements' | 'body-type' | 'preference' | 'photos' | 'result';
+type Step = 'intro' | 'measurements' | 'body-type' | 'preference' | 'photos' | 'result' | 'curate-measurements';
+type FitMode = 'simple' | 'curate';
 
-export function FitIntelligence({ onClose, onComplete }: FitIntelligenceProps) {
+export function FitIntelligence({ onClose, onComplete, product }: FitIntelligenceProps) {
   // ✅ ALL STATE DECLARED FIRST
   const { addFitProfile, currentUser } = useAppStore();
   const [currentStep, setCurrentStep] = useState<Step>('intro');
+  const [fitMode, setFitMode] = useState<FitMode>('simple');
   const [recommendedSize, setRecommendedSize] = useState<string>('M');
   const [fitConfidence, setFitConfidence] = useState<number>(0);
   const [formData, setFormData] = useState({
@@ -23,6 +26,31 @@ export function FitIntelligence({ onClose, onComplete }: FitIntelligenceProps) {
     selectedSize: '',
     photosUploaded: 0
   });
+
+  // Curate Your Fix measurements state
+  const [curateData, setCurateData] = useState({
+    // Top measurements
+    chestBust: '',
+    shoulderWidth: '',
+    waist: '',
+    hip: '',
+    bicep: '',
+    wrist: '',
+    armLength: '',
+    garmentLength: '',
+    // Bottom measurements
+    thighCircumference: '',
+    calfCircumference: '',
+    inseam: '',
+    outseam: '',
+    ankleOpening: ''
+  });
+
+  // Check if product supports curate mode
+  const showCurateOption = product?.isTop || product?.isBottom;
+  
+  // Debug: Log product data to help troubleshoot
+  console.log('[FitIntelligence] Product:', product?.name, 'isTop:', product?.isTop, 'isBottom:', product?.isBottom, 'showCurateOption:', showCurateOption);
 
   // ✅ THEN DEFINE CONSTANT DATA
   const bodyTypes = [
@@ -175,42 +203,320 @@ export function FitIntelligence({ onClose, onComplete }: FitIntelligenceProps) {
 
         {/* Intro Step */}
         {currentStep === 'intro' && (
-          <div className="bg-white p-12 text-center">
-            <h1 className="font-[var(--font-serif)] text-4xl mb-6 text-[var(--charcoal)]">
-              Personal Fit Profile
-            </h1>
-            <p className="text-[15px] text-[var(--charcoal)] leading-relaxed mb-8 max-w-2xl mx-auto">
-              Create your personal fit profile to receive tailored size recommendations and see how garments will look on your body. This process takes approximately 3 minutes.
-            </p>
-            <div className="space-y-4 text-left max-w-md mx-auto mb-8">
-              <div className="flex gap-3">
-                <Check size={20} className="text-[var(--crimson)] flex-shrink-0 mt-0.5" strokeWidth={1.5} />
-                <p className="text-[14px] text-[var(--charcoal)]">
-                  Accurate size recommendations based on your measurements
-                </p>
-              </div>
-              <div className="flex gap-3">
-                <Check size={20} className="text-[var(--crimson)] flex-shrink-0 mt-0.5" strokeWidth={1.5} />
-                <p className="text-[14px] text-[var(--charcoal)]">
-                  Virtual fit preview using AI technology
-                </p>
-              </div>
-              <div className="flex gap-3">
-                <Check size={20} className="text-[var(--crimson)] flex-shrink-0 mt-0.5" strokeWidth={1.5} />
-                <p className="text-[14px] text-[var(--charcoal)]">
-                  Reduced returns and increased satisfaction
-                </p>
-              </div>
+          <div className="bg-white p-12">
+            <div className="text-center mb-10">
+              <h1 className="font-[var(--font-serif)] text-4xl mb-4 text-[var(--charcoal)]">
+                Find Your Perfect Fit
+              </h1>
+              <p className="text-[15px] text-[var(--charcoal)] leading-relaxed max-w-2xl mx-auto">
+                Choose how you'd like to find your ideal size
+              </p>
             </div>
-            <button
-              onClick={goToNextStep}
-              className="h-14 px-12 bg-[var(--crimson)] text-white text-[14px] tracking-wide hover:opacity-90 transition-opacity"
-            >
-              Get Started
-            </button>
-            <p className="text-[12px] text-[var(--light-gray)] mt-6">
+
+            <div className={`grid ${showCurateOption ? 'md:grid-cols-2' : 'grid-cols-1 max-w-md mx-auto'} gap-6`}>
+              {/* Simple Fit Profile Card */}
+              <div className="border border-gray-200 rounded-lg p-8 hover:border-[var(--crimson)] transition-colors">
+                <h2 className="font-[var(--font-serif)] text-2xl mb-4 text-[var(--charcoal)]">
+                  Simple Fit Profile
+                </h2>
+                <p className="text-[14px] text-gray-600 mb-6">
+                  Quick size recommendation based on your general measurements and preferences.
+                </p>
+                <div className="space-y-3 mb-6">
+                  <div className="flex gap-3">
+                    <Check size={18} className="text-[var(--crimson)] flex-shrink-0 mt-0.5" />
+                    <p className="text-[13px] text-[var(--charcoal)]">Takes only 2 minutes</p>
+                  </div>
+                  <div className="flex gap-3">
+                    <Check size={18} className="text-[var(--crimson)] flex-shrink-0 mt-0.5" />
+                    <p className="text-[13px] text-[var(--charcoal)]">Basic height & weight info</p>
+                  </div>
+                  <div className="flex gap-3">
+                    <Check size={18} className="text-[var(--crimson)] flex-shrink-0 mt-0.5" />
+                    <p className="text-[13px] text-[var(--charcoal)]">AI-powered recommendations</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    setFitMode('simple');
+                    goToNextStep();
+                  }}
+                  className="w-full h-12 bg-[var(--crimson)] text-white text-[14px] tracking-wide hover:opacity-90 transition-opacity"
+                >
+                  Get Started
+                </button>
+              </div>
+
+              {/* Curate Your Fix Card - Only shown when product supports it */}
+              {showCurateOption && (
+                <div className="border-2 border-[var(--crimson)] rounded-lg p-8 relative">
+                  <div className="absolute -top-3 left-4 bg-[var(--crimson)] text-white text-[11px] px-3 py-1 rounded">
+                    RECOMMENDED
+                  </div>
+                  <h2 className="font-[var(--font-serif)] text-2xl mb-4 text-[var(--charcoal)]">
+                    Curate Your Fit
+                  </h2>
+                  <p className="text-[14px] text-gray-600 mb-6">
+                    Detailed measurements for a precise, tailored fit recommendation.
+                  </p>
+                  <div className="space-y-3 mb-6">
+                    <div className="flex gap-3">
+                      <Ruler size={18} className="text-[var(--crimson)] flex-shrink-0 mt-0.5" />
+                      <p className="text-[13px] text-[var(--charcoal)]">
+                        {product?.isTop ? 'Chest, shoulders, arms & more' : ''}
+                        {product?.isTop && product?.isBottom ? ' + ' : ''}
+                        {product?.isBottom ? 'Waist, thigh, inseam & more' : ''}
+                      </p>
+                    </div>
+                    <div className="flex gap-3">
+                      <Check size={18} className="text-[var(--crimson)] flex-shrink-0 mt-0.5" />
+                      <p className="text-[13px] text-[var(--charcoal)]">Most accurate fit</p>
+                    </div>
+                    <div className="flex gap-3">
+                      <Check size={18} className="text-[var(--crimson)] flex-shrink-0 mt-0.5" />
+                      <p className="text-[13px] text-[var(--charcoal)]">Tailored to this product</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setFitMode('curate');
+                      setCurrentStep('curate-measurements');
+                    }}
+                    className="w-full h-12 bg-[var(--charcoal)] text-white text-[14px] tracking-wide hover:opacity-90 transition-opacity"
+                  >
+                    Curate Your Fit
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <p className="text-[12px] text-gray-500 mt-8 text-center">
               Your data is securely stored and never shared with third parties.
             </p>
+          </div>
+        )}
+
+        {/* Curate Measurements Step */}
+        {currentStep === 'curate-measurements' && (
+          <div className="bg-white p-12">
+            <h2 className="font-[var(--font-serif)] text-3xl mb-4 text-[var(--charcoal)]">
+              Curate Your Fit
+            </h2>
+            <p className="text-[14px] text-gray-600 mb-8">
+              Enter your measurements in centimeters for a precise fit recommendation.
+            </p>
+
+            {/* Top Measurements */}
+            {product?.isTop && (
+              <div className="mb-8">
+                <h3 className="text-[16px] font-medium text-[var(--charcoal)] mb-4 pb-2 border-b">
+                  Top Measurements
+                </h3>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[13px] text-gray-600 mb-2">Chest/Bust (cm)</label>
+                    <input
+                      type="number"
+                      value={curateData.chestBust}
+                      onChange={(e) => setCurateData({ ...curateData, chestBust: e.target.value })}
+                      className="w-full h-11 px-4 border border-gray-200 text-[14px] focus:outline-none focus:border-[var(--crimson)]"
+                      placeholder="e.g., 96"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[13px] text-gray-600 mb-2">Shoulder Width (cm)</label>
+                    <input
+                      type="number"
+                      value={curateData.shoulderWidth}
+                      onChange={(e) => setCurateData({ ...curateData, shoulderWidth: e.target.value })}
+                      className="w-full h-11 px-4 border border-gray-200 text-[14px] focus:outline-none focus:border-[var(--crimson)]"
+                      placeholder="e.g., 45"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[13px] text-gray-600 mb-2">Waist (cm)</label>
+                    <input
+                      type="number"
+                      value={curateData.waist}
+                      onChange={(e) => setCurateData({ ...curateData, waist: e.target.value })}
+                      className="w-full h-11 px-4 border border-gray-200 text-[14px] focus:outline-none focus:border-[var(--crimson)]"
+                      placeholder="e.g., 82"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[13px] text-gray-600 mb-2">Hip (cm)</label>
+                    <input
+                      type="number"
+                      value={curateData.hip}
+                      onChange={(e) => setCurateData({ ...curateData, hip: e.target.value })}
+                      className="w-full h-11 px-4 border border-gray-200 text-[14px] focus:outline-none focus:border-[var(--crimson)]"
+                      placeholder="e.g., 98"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[13px] text-gray-600 mb-2">Bicep (cm)</label>
+                    <input
+                      type="number"
+                      value={curateData.bicep}
+                      onChange={(e) => setCurateData({ ...curateData, bicep: e.target.value })}
+                      className="w-full h-11 px-4 border border-gray-200 text-[14px] focus:outline-none focus:border-[var(--crimson)]"
+                      placeholder="e.g., 32"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[13px] text-gray-600 mb-2">Wrist (cm)</label>
+                    <input
+                      type="number"
+                      value={curateData.wrist}
+                      onChange={(e) => setCurateData({ ...curateData, wrist: e.target.value })}
+                      className="w-full h-11 px-4 border border-gray-200 text-[14px] focus:outline-none focus:border-[var(--crimson)]"
+                      placeholder="e.g., 17"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[13px] text-gray-600 mb-2">Arm Length (cm)</label>
+                    <input
+                      type="number"
+                      value={curateData.armLength}
+                      onChange={(e) => setCurateData({ ...curateData, armLength: e.target.value })}
+                      className="w-full h-11 px-4 border border-gray-200 text-[14px] focus:outline-none focus:border-[var(--crimson)]"
+                      placeholder="e.g., 62"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[13px] text-gray-600 mb-2">Garment Length (cm)</label>
+                    <input
+                      type="number"
+                      value={curateData.garmentLength}
+                      onChange={(e) => setCurateData({ ...curateData, garmentLength: e.target.value })}
+                      className="w-full h-11 px-4 border border-gray-200 text-[14px] focus:outline-none focus:border-[var(--crimson)]"
+                      placeholder="e.g., 72"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Bottom Measurements */}
+            {product?.isBottom && (
+              <div className="mb-8">
+                <h3 className="text-[16px] font-medium text-[var(--charcoal)] mb-4 pb-2 border-b">
+                  Bottom Measurements
+                </h3>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[13px] text-gray-600 mb-2">Waist (cm)</label>
+                    <input
+                      type="number"
+                      value={curateData.waist}
+                      onChange={(e) => setCurateData({ ...curateData, waist: e.target.value })}
+                      className="w-full h-11 px-4 border border-gray-200 text-[14px] focus:outline-none focus:border-[var(--crimson)]"
+                      placeholder="e.g., 82"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[13px] text-gray-600 mb-2">Hip (cm)</label>
+                    <input
+                      type="number"
+                      value={curateData.hip}
+                      onChange={(e) => setCurateData({ ...curateData, hip: e.target.value })}
+                      className="w-full h-11 px-4 border border-gray-200 text-[14px] focus:outline-none focus:border-[var(--crimson)]"
+                      placeholder="e.g., 98"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[13px] text-gray-600 mb-2">Thigh Circumference (cm)</label>
+                    <input
+                      type="number"
+                      value={curateData.thighCircumference}
+                      onChange={(e) => setCurateData({ ...curateData, thighCircumference: e.target.value })}
+                      className="w-full h-11 px-4 border border-gray-200 text-[14px] focus:outline-none focus:border-[var(--crimson)]"
+                      placeholder="e.g., 58"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[13px] text-gray-600 mb-2">Calf Circumference (cm)</label>
+                    <input
+                      type="number"
+                      value={curateData.calfCircumference}
+                      onChange={(e) => setCurateData({ ...curateData, calfCircumference: e.target.value })}
+                      className="w-full h-11 px-4 border border-gray-200 text-[14px] focus:outline-none focus:border-[var(--crimson)]"
+                      placeholder="e.g., 38"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[13px] text-gray-600 mb-2">Inseam (cm)</label>
+                    <input
+                      type="number"
+                      value={curateData.inseam}
+                      onChange={(e) => setCurateData({ ...curateData, inseam: e.target.value })}
+                      className="w-full h-11 px-4 border border-gray-200 text-[14px] focus:outline-none focus:border-[var(--crimson)]"
+                      placeholder="e.g., 81"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[13px] text-gray-600 mb-2">Outseam (cm)</label>
+                    <input
+                      type="number"
+                      value={curateData.outseam}
+                      onChange={(e) => setCurateData({ ...curateData, outseam: e.target.value })}
+                      className="w-full h-11 px-4 border border-gray-200 text-[14px] focus:outline-none focus:border-[var(--crimson)]"
+                      placeholder="e.g., 106"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[13px] text-gray-600 mb-2">Ankle Opening (cm)</label>
+                    <input
+                      type="number"
+                      value={curateData.ankleOpening}
+                      onChange={(e) => setCurateData({ ...curateData, ankleOpening: e.target.value })}
+                      className="w-full h-11 px-4 border border-gray-200 text-[14px] focus:outline-none focus:border-[var(--crimson)]"
+                      placeholder="e.g., 22"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="flex gap-4">
+              <button
+                onClick={() => setCurrentStep('intro')}
+                className="flex-1 h-12 border border-gray-300 text-[var(--charcoal)] text-[14px] hover:bg-gray-50 transition-colors"
+              >
+                Back
+              </button>
+              <button
+                onClick={() => {
+                  // Calculate size based on curate measurements
+                  let size = 'M';
+                  const chest = Number(curateData.chestBust);
+                  const waist = Number(curateData.waist);
+                  
+                  if (chest) {
+                    if (chest < 88) size = 'XS';
+                    else if (chest < 94) size = 'S';
+                    else if (chest < 100) size = 'M';
+                    else if (chest < 106) size = 'L';
+                    else if (chest < 112) size = 'XL';
+                    else size = 'XXL';
+                  } else if (waist) {
+                    if (waist < 72) size = 'XS';
+                    else if (waist < 78) size = 'S';
+                    else if (waist < 84) size = 'M';
+                    else if (waist < 90) size = 'L';
+                    else if (waist < 96) size = 'XL';
+                    else size = 'XXL';
+                  }
+                  
+                  setRecommendedSize(size);
+                  setFitConfidence(92);
+                  setCurrentStep('result');
+                }}
+                className="flex-1 h-12 bg-[var(--crimson)] text-white text-[14px] hover:opacity-90 transition-opacity"
+              >
+                Get My Fit
+              </button>
+            </div>
           </div>
         )}
 

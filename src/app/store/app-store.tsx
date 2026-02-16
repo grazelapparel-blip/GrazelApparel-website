@@ -14,6 +14,8 @@ export interface Product {
   gender?: string;
   isEssential?: boolean;
   isHighlight?: boolean;
+  isTop?: boolean;
+  isBottom?: boolean;
   offerPercentage?: number;
   season?: string;
   festival?: string;
@@ -319,6 +321,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         gender: p.gender,
         isEssential: p.is_essential,
         isHighlight: p.is_highlight,
+        isTop: p.is_top,
+        isBottom: p.is_bottom,
         offerPercentage: p.offer_percentage,
         season: p.season,
         festival: p.festival,
@@ -640,6 +644,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
             gender: product.gender,
             is_essential: product.isEssential || false,
             is_highlight: product.isHighlight || false,
+            is_top: product.isTop || false,
+            is_bottom: product.isBottom || false,
             offer_percentage: product.offerPercentage || 0,
             season: product.season || null,
             festival: product.festival || null,
@@ -670,6 +676,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
           gender: data[0].gender,
           isEssential: data[0].is_essential,
           isHighlight: data[0].is_highlight,
+          isTop: data[0].is_top,
+          isBottom: data[0].is_bottom,
           offerPercentage: data[0].offer_percentage,
           season: data[0].season,
           festival: data[0].festival,
@@ -715,6 +723,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
           gender: updates.gender,
           is_essential: updates.isEssential,
           is_highlight: updates.isHighlight,
+          is_top: updates.isTop,
+          is_bottom: updates.isBottom,
           offer_percentage: updates.offerPercentage,
           season: updates.season,
           festival: updates.festival,
@@ -781,6 +791,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
             gender: p.gender,
             isEssential: p.is_essential,
             isHighlight: p.is_highlight,
+            isTop: p.is_top,
+            isBottom: p.is_bottom,
             offerPercentage: p.offer_percentage,
             festival: p.festival,
             createdAt: p.created_at

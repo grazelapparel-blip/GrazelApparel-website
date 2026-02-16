@@ -7,7 +7,7 @@ interface UserAuthProps {
   onSuccess: () => void;
 }
 
-type AuthStep = 'form' | 'signup-success';
+type AuthStep = 'form' | 'signup-success' | 'forgot-password' | 'reset-sent';
 
 export function UserAuth({ onSuccess }: UserAuthProps) {
   const { setCurrentUser } = useAppStore();
@@ -194,6 +194,38 @@ export function UserAuth({ onSuccess }: UserAuthProps) {
     setFormData(prev => ({ ...prev, name: '', confirmPassword: '' }));
   };
 
+  // Handle Forgot Password
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+
+    if (!formData.email) {
+      setError('Please enter your email address');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(formData.email, {
+        redirectTo: typeof window !== 'undefined' ? `${window.location.origin}/#/reset-password` : undefined
+      });
+
+      if (error) throw error;
+
+      setStep('reset-sent');
+    } catch (err: any) {
+      console.error('Forgot password error:', err);
+      if (err.message?.includes('rate limit')) {
+        setError('Too many attempts. Please wait a few minutes and try again.');
+      } else {
+        setError(err.message || 'Failed to send reset email. Please try again.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="w-full max-w-md mx-auto">
       {/* Logo/Brand */}
@@ -222,6 +254,79 @@ export function UserAuth({ onSuccess }: UserAuthProps) {
                 className="w-full h-12 bg-[var(--crimson)] text-white font-medium rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
               >
                 Go to Login
+                <ArrowRight size={18} />
+              </button>
+            </div>
+          )}
+
+          {/* Forgot Password Step */}
+          {step === 'forgot-password' && (
+            <div>
+              <h2 className="font-[var(--font-serif)] text-2xl text-[var(--charcoal)] mb-2">
+                Reset Password
+              </h2>
+              <p className="text-gray-600 text-sm mb-6">
+                Enter your email address and we'll send you a link to reset your password.
+              </p>
+
+              {error && (
+                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded">
+                  <p className="text-sm text-red-600">{error}</p>
+                </div>
+              )}
+
+              <form onSubmit={handleForgotPassword} className="space-y-4">
+                <div>
+                  <label className="block text-sm text-gray-700 mb-2">Email Address</label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                    <input
+                      type="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleChange}
+                      placeholder="you@example.com"
+                      className="w-full h-12 pl-10 pr-4 border border-gray-300 rounded-lg focus:outline-none focus:border-[var(--crimson)] text-sm"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full h-12 bg-[var(--crimson)] text-white font-medium rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity flex items-center justify-center gap-2"
+                >
+                  {loading ? 'Sending...' : 'Send Reset Link'}
+                  <ArrowRight size={18} />
+                </button>
+              </form>
+
+              <button
+                onClick={switchToLogin}
+                className="w-full text-sm text-gray-600 hover:text-[var(--crimson)] mt-4"
+              >
+                Back to Login
+              </button>
+            </div>
+          )}
+
+          {/* Reset Email Sent Step */}
+          {step === 'reset-sent' && (
+            <div className="text-center">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Mail className="text-green-600" size={32} />
+              </div>
+              <h2 className="font-[var(--font-serif)] text-2xl text-[var(--charcoal)] mb-2">
+                Check Your Email
+              </h2>
+              <p className="text-gray-600 text-sm mb-6">
+                We've sent a password reset link to <strong>{formData.email}</strong>. Please check your inbox and follow the instructions.
+              </p>
+              <button
+                onClick={switchToLogin}
+                className="w-full h-12 bg-[var(--crimson)] text-white font-medium rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+              >
+                Back to Login
                 <ArrowRight size={18} />
               </button>
             </div>
@@ -332,6 +437,13 @@ export function UserAuth({ onSuccess }: UserAuthProps) {
                         className="w-full h-12 pl-10 pr-4 border border-gray-300 rounded-lg focus:outline-none focus:border-[var(--crimson)] text-sm"
                       />
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => setStep('forgot-password')}
+                      className="text-sm text-[var(--crimson)] hover:underline mt-2"
+                    >
+                      Forgot Password?
+                    </button>
                   </div>
 
                   <button
