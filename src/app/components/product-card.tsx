@@ -51,14 +51,17 @@ export function ProductCard({ id, name, price, image, fabric, fit, gender, isEss
         
         {/* Favorite Heart - Always Visible */}
         <button
-          onClick={handleLikeClick}
-          className="absolute top-3 right-3 w-9 h-9 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm hover:bg-white hover:scale-110 transition-all z-10"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleLikeClick();
+          }}
+          className="absolute top-3 right-3 w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-md hover:scale-110 transition-all z-20 border border-gray-200"
           title={favorited ? 'Remove from favorites' : 'Add to favorites'}
         >
           <Heart
-            size={18}
-            strokeWidth={1.5}
-            className={favorited ? 'text-[var(--crimson)] fill-[var(--crimson)]' : 'text-[var(--charcoal)]'}
+            size={20}
+            strokeWidth={2}
+            className={favorited ? 'text-red-500 fill-red-500' : 'text-gray-600'}
           />
         </button>
         <button

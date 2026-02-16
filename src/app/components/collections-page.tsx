@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Heart } from 'lucide-react';
 import { useAppStore } from '../store/app-store';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 
@@ -40,7 +40,7 @@ const collectionSections = [
 ];
 
 export function CollectionsPage({ onProductClick, onShowMore }: CollectionsPageProps) {
-  const { products } = useAppStore();
+  const { products, toggleFavorite, isFavorite } = useAppStore();
 
   // Season filter state
   const [selectedSeason, setSelectedSeason] = useState<string>('all');
@@ -200,10 +200,26 @@ export function CollectionsPage({ onProductClick, onShowMore }: CollectionsPageP
 
                           {/* Season Badge */}
                           {product.season && (
-                            <div className="absolute top-4 right-4 bg-white/90 text-gray-800 px-3 py-1.5 text-xs tracking-wider uppercase">
+                            <div className="absolute top-4 right-16 bg-white/90 text-gray-800 px-3 py-1.5 text-xs tracking-wider uppercase">
                               {product.season}
                             </div>
                           )}
+
+                          {/* Favorite Heart */}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleFavorite(product);
+                            }}
+                            className="absolute top-3 right-3 w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-md hover:scale-110 transition-all z-20 border border-gray-200"
+                            title={isFavorite(product.id) ? 'Remove from favorites' : 'Add to favorites'}
+                          >
+                            <Heart
+                              size={20}
+                              strokeWidth={2}
+                              className={isFavorite(product.id) ? 'text-red-500 fill-red-500' : 'text-gray-600'}
+                            />
+                          </button>
 
                           {/* Product Info Overlay */}
                           <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent p-6 transition-all duration-300 group-hover:pb-16">
@@ -313,9 +329,25 @@ export function CollectionsPage({ onProductClick, onShowMore }: CollectionsPageP
                         </div>
                       )}
 
+                      {/* Favorite Heart */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleFavorite(product);
+                        }}
+                        className="absolute top-3 right-3 w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-md hover:scale-110 transition-all z-20 border border-gray-200"
+                        title={isFavorite(product.id) ? 'Remove from favorites' : 'Add to favorites'}
+                      >
+                        <Heart
+                          size={20}
+                          strokeWidth={2}
+                          className={isFavorite(product.id) ? 'text-red-500 fill-red-500' : 'text-gray-600'}
+                        />
+                      </button>
+
                       {/* Season Badge */}
                       {product.season && (
-                        <div className="absolute top-3 right-3 bg-white/90 text-gray-800 px-2 py-1 text-xs tracking-wider uppercase">
+                        <div className="absolute top-12 right-3 bg-white/90 text-gray-800 px-2 py-1 text-xs tracking-wider uppercase">
                           {product.season}
                         </div>
                       )}
