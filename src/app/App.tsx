@@ -12,6 +12,7 @@ import { AdminLogin } from './components/admin-login';
 import { UserAuth } from './components/user-auth';
 import { ImageWithFallback } from './components/figma/ImageWithFallback';
 import { CollectionsPage } from './components/collections-page';
+import { Wishlist } from './components/wishlist';
 import { AppProvider, useAppStore } from './store/app-store';
 
 // Centralized Routes Configuration Array
@@ -23,13 +24,14 @@ export const routes = [
   { path: '/essentials', page: 'products', label: 'Essentials', filter: { type: 'essentials', value: 'true' } },
   { path: '/new-in', page: 'products', label: 'New In', filter: { type: 'newIn', value: 'true' } },
   { path: '/collections', page: 'collections', label: 'Collections' },
+  { path: '/wishlist', page: 'wishlist', label: 'Wishlist' },
   { path: '/cart', page: 'cart', label: 'Cart' },
   { path: '/fit-intelligence', page: 'fit', label: 'Fit Intelligence' },
   { path: '/admin', page: 'admin', label: 'Admin Dashboard', protected: true },
   { path: '/admin-login', page: 'admin-login', label: 'Admin Login' },
 ] as const;
 
-type PageType = 'home' | 'products' | 'product' | 'fit' | 'cart' | 'admin-login' | 'admin' | 'collections';
+type PageType = 'home' | 'products' | 'product' | 'fit' | 'cart' | 'wishlist' | 'admin-login' | 'admin' | 'collections';
 
 // Helper function to get current route from URL hash
 function getRouteFromHash(): { page: PageType; filter?: { type: string; value: string } } {
@@ -143,7 +145,7 @@ function AppContent() {
             setShowLoginPrompt(true);
             setPendingAction('wishlist');
           } else {
-            console.log('Wishlist feature coming soon');
+            navigateTo('/wishlist');
           }
         }}
         onCart={() => {
@@ -343,6 +345,10 @@ function AppContent() {
 
       {currentPage === 'cart' && currentUser && (
         <CartCheckout onContinueShopping={() => navigateTo('/products')} />
+      )}
+
+      {currentPage === 'wishlist' && currentUser && (
+        <Wishlist onBack={() => navigateTo('/products')} />
       )}
 
       {/* Quick View Modal */}
