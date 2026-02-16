@@ -44,14 +44,15 @@ export function ProductCard({ id, name, price, image, fabric, fit, gender, isEss
         
         {/* Essential Badge */}
         {isEssential && (
-          <div className="absolute top-4 right-12 bg-green-600 text-white px-3 py-1 text-[12px] font-medium">
+          <div className="absolute top-4 right-14 bg-green-600 text-white px-3 py-1 text-[12px] font-medium">
             ESSENTIAL
           </div>
         )}
         
+        {/* Favorite Heart - Always Visible */}
         <button
           onClick={handleLikeClick}
-          className="absolute top-4 right-4 w-10 h-10 bg-white/90 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white"
+          className="absolute top-3 right-3 w-9 h-9 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm hover:bg-white hover:scale-110 transition-all z-10"
           title={favorited ? 'Remove from favorites' : 'Add to favorites'}
         >
           <Heart
