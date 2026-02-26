@@ -293,6 +293,39 @@ export function FitIntelligence({ onClose, onComplete, product }: FitIntelligenc
             <p className="text-[12px] text-gray-500 mt-8 text-center">
               Your data is securely stored and never shared with third parties.
             </p>
+
+            {/* Refund Policy Section */}
+            <div className="mt-10 border-t border-gray-200 pt-8">
+              <h3 className="font-[var(--font-serif)] text-xl mb-6 text-[var(--charcoal)] text-center">
+                Re-Fund Policy
+              </h3>
+              <div className="grid md:grid-cols-2 gap-4 max-w-2xl mx-auto">
+                <div className="flex items-start gap-3 bg-gray-50 p-4 rounded">
+                  <Check size={16} className="text-[var(--crimson)] flex-shrink-0 mt-0.5" strokeWidth={2} />
+                  <p className="text-[13px] text-[var(--charcoal)]">7 days to request fit issue</p>
+                </div>
+                <div className="flex items-start gap-3 bg-gray-50 p-4 rounded">
+                  <Check size={16} className="text-[var(--crimson)] flex-shrink-0 mt-0.5" strokeWidth={2} />
+                  <p className="text-[13px] text-[var(--charcoal)]">Mandatory photo proof</p>
+                </div>
+                <div className="flex items-start gap-3 bg-gray-50 p-4 rounded">
+                  <Check size={16} className="text-[var(--crimson)] flex-shrink-0 mt-0.5" strokeWidth={2} />
+                  <p className="text-[13px] text-[var(--charcoal)]">One free alteration</p>
+                </div>
+                <div className="flex items-start gap-3 bg-gray-50 p-4 rounded">
+                  <Check size={16} className="text-[var(--crimson)] flex-shrink-0 mt-0.5" strokeWidth={2} />
+                  <p className="text-[13px] text-[var(--charcoal)]">One free replacement</p>
+                </div>
+                <div className="flex items-start gap-3 bg-red-50 p-4 rounded">
+                  <X size={16} className="text-red-500 flex-shrink-0 mt-0.5" strokeWidth={2} />
+                  <p className="text-[13px] text-[var(--charcoal)]">No refund on customized orders</p>
+                </div>
+                <div className="flex items-start gap-3 bg-gray-50 p-4 rounded">
+                  <Check size={16} className="text-[var(--crimson)] flex-shrink-0 mt-0.5" strokeWidth={2} />
+                  <p className="text-[13px] text-[var(--charcoal)]">Refund only if product defect (fabric damage, stitching defect)</p>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
