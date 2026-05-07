@@ -491,15 +491,6 @@ function ReturnsManagement({
       </Modal>
     </div>
   );
-                  </select>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
 }
 
 // Navigation Control Component
