@@ -740,7 +740,7 @@ export function AdminDashboardEnhanced({ onBack }: AdminDashboardProps) {
   const [editingUser, setEditingUser] = useState<User | null>(null);
 
   const [productForm, setProductForm] = useState({
-    name: '', price: '', image: '', fabric: '', fit: '', category: '', size: '', gender: '', isEssential: false, isHighlight: false, isTop: false, isBottom: false, offerPercentage: '', season: '', festival: ''
+    name: '', price: '', image: '', fabric: '', fit: '', category: '', size: '', gender: '', isEssential: false, isHighlight: false, isTop: false, isBottom: false, offerPercentage: '', returnDays: '30', season: '', festival: ''
   });
 
   const [userForm, setUserForm] = useState({
@@ -750,7 +750,7 @@ export function AdminDashboardEnhanced({ onBack }: AdminDashboardProps) {
   // Product handlers
   const handleAddProduct = () => {
     setEditingProduct(null);
-    setProductForm({ name: '', price: '', image: '', fabric: '', fit: '', category: '', size: '', gender: '', isEssential: false, isHighlight: false, isTop: false, isBottom: false, offerPercentage: '', season: '', festival: '' });
+    setProductForm({ name: '', price: '', image: '', fabric: '', fit: '', category: '', size: '', gender: '', isEssential: false, isHighlight: false, isTop: false, isBottom: false, offerPercentage: '', returnDays: '30', season: '', festival: '' });
     setShowProductModal(true);
   };
 
@@ -770,6 +770,7 @@ export function AdminDashboardEnhanced({ onBack }: AdminDashboardProps) {
       isTop: product.isTop || false,
       isBottom: product.isBottom || false,
       offerPercentage: String(product.offerPercentage || ''),
+      returnDays: String(product.returnDays || '30'),
       season: product.season || '',
       festival: product.festival || ''
     });
@@ -791,6 +792,7 @@ export function AdminDashboardEnhanced({ onBack }: AdminDashboardProps) {
       isTop: productForm.isTop,
       isBottom: productForm.isBottom,
       offerPercentage: Number(productForm.offerPercentage) || 0,
+      returnDays: Math.max(1, Number(productForm.returnDays) || 30),
       season: productForm.season,
       festival: productForm.festival,
       createdAt: editingProduct?.createdAt || new Date().toISOString()
@@ -1125,6 +1127,11 @@ export function AdminDashboardEnhanced({ onBack }: AdminDashboardProps) {
           <input type="text" placeholder="Fabric" value={productForm.fabric} onChange={(e) => setProductForm({ ...productForm, fabric: e.target.value })} className="w-full px-4 py-2 border border-gray-200 text-[14px]" />
           <input type="text" placeholder="Fit" value={productForm.fit} onChange={(e) => setProductForm({ ...productForm, fit: e.target.value })} className="w-full px-4 py-2 border border-gray-200 text-[14px]" />
           <input type="text" placeholder="Category" value={productForm.category} onChange={(e) => setProductForm({ ...productForm, category: e.target.value })} className="w-full px-4 py-2 border border-gray-200 text-[14px]" />
+          <div>
+            <label className="block text-[12px] font-medium text-gray-700 mb-1">Return Window (Days)</label>
+            <input type="number" min="1" max="365" placeholder="Return days (e.g., 30)" value={productForm.returnDays} onChange={(e) => setProductForm({ ...productForm, returnDays: e.target.value })} className="w-full px-4 py-2 border border-gray-200 text-[14px]" />
+            <p className="text-[11px] text-gray-500 mt-1">How many days customers have to return this product (default: 30)</p>
+          </div>
           <input type="text" placeholder="Sizes (comma separated)" value={productForm.size} onChange={(e) => setProductForm({ ...productForm, size: e.target.value })} className="w-full px-4 py-2 border border-gray-200 text[14px]" />
           <button onClick={handleSaveProduct} className="w-full px-4 py-2 bg-[var(--crimson)] text-white text-[14px] hover:opacity-90">Save Product</button>
         </div>

@@ -17,6 +17,7 @@ export interface Product {
   isTop?: boolean;
   isBottom?: boolean;
   offerPercentage?: number;
+  returnDays?: number; // Per-product return window (default: 30 days)
   season?: string;
   festival?: string;
   createdAt?: string;
@@ -144,7 +145,8 @@ interface AppContextType extends AppState {
   getAllReturns: () => Return[];
   updateReturnStatus: (returnId: string, status: Return['status'], adminNotes?: string) => void;
   isOrderReturnable: (orderId: string) => boolean;
-  getReturnDeadline: (orderDate: string) => Date;
+  getReturnDeadline: (orderDate: string, orderId?: string) => Date;
+  getOrderReturnDays: (orderId: string) => number;
 }
 
 // Mock data
@@ -917,8 +919,26 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const getReturnPolicy = () => adminSettings.returnPolicyDays;
 
-  const getReturnDeadline = (orderDate: string): Date => {
+  const getReturnDeadline = (orderDate: string, orderId?: string): Date => {
     const date = new Date(orderDate);
+    
+    // If orderId provided, use the minimum return days from products in that order
+    if (orderId) {
+      const order = orders.find(o => o.id === orderId);
+      if (order) {
+        // Get minimum return days from all products in order (most restrictive)
+        const minReturnDays = Math.min(
+          ...order.items.map(item => {
+            const product = products.find(p => p.id === item.id);
+            return product?.returnDays || 30; // Default to 30 days
+          })
+        );
+        date.setDate(date.getDate() + minReturnDays);
+        return date;
+      }
+    }
+    
+    // Fallback to global policy
     date.setDate(date.getDate() + adminSettings.returnPolicyDays);
     return date;
   };
@@ -927,9 +947,22 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const order = orders.find(o => o.id === orderId);
     if (!order) return false;
 
-    const returnDeadline = getReturnDeadline(order.createdAt);
+    const returnDeadline = getReturnDeadline(order.createdAt, orderId);
     const now = new Date();
     return now <= returnDeadline && order.status === 'delivered';
+  };
+
+  const getOrderReturnDays = (orderId: string): number => {
+    const order = orders.find(o => o.id === orderId);
+    if (!order) return adminSettings.returnPolicyDays;
+    
+    // Return minimum days from all products (most restrictive)
+    return Math.min(
+      ...order.items.map(item => {
+        const product = products.find(p => p.id === item.id);
+        return product?.returnDays || 30;
+      })
+    );
   };
 
   const requestReturn = (orderId: string, reason: string) => {
@@ -1145,6 +1178,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         updateReturnStatus,
         isOrderReturnable,
         getReturnDeadline,
+        getOrderReturnDays,
       }}
     >
       {children}

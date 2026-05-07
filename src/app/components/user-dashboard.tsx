@@ -37,6 +37,7 @@ export function UserDashboard({ onBack }: UserDashboardProps) {
     isOrderReturnable,
     getReturnDeadline,
     getReturnPolicy,
+    getOrderReturnDays,
   } = useAppStore();
 
   const [activeTab, setActiveTab] = useState<'orders' | 'returns'>('orders');
@@ -172,9 +173,10 @@ export function UserDashboard({ onBack }: UserDashboardProps) {
             ) : (
               userOrders.map((order) => {
                 const isReturnable = isOrderReturnable(order.id);
-                const returnDeadline = isReturnable ? getReturnDeadline(order.createdAt) : null;
+                const returnDeadline = isReturnable ? getReturnDeadline(order.createdAt, order.id) : null;
                 const returnStatus = getReturnStatus(order.id);
                 const hasActiveReturn = returnStatus && returnStatus !== 'rejected';
+                const orderReturnDays = getOrderReturnDays(order.id);
 
                 return (
                   <div key={order.id} className="bg-white border border-gray-200 rounded-lg overflow-hidden">
@@ -277,7 +279,7 @@ export function UserDashboard({ onBack }: UserDashboardProps) {
                             <div className="text-[13px] text-blue-800">
                               <p className="font-medium mb-1">This order is returnable</p>
                               <p className="mb-3">
-                                Return deadline: {returnDeadline?.toLocaleDateString()} ({returnPolicy} days from delivery)
+                                Return deadline: {returnDeadline?.toLocaleDateString()} ({orderReturnDays} days from delivery)
                               </p>
                               <button
                                 onClick={() => {
