@@ -11,6 +11,7 @@ import { AdminDashboard } from './components/admin-dashboard';
 import { AdminDashboardEnhanced } from './components/admin-dashboard-enhanced';
 import { AdminLogin } from './components/admin-login';
 import { UserAuth } from './components/user-auth';
+import { UserDashboard } from './components/user-dashboard';
 import { ImageWithFallback } from './components/figma/ImageWithFallback';
 import { CollectionsPage } from './components/collections-page';
 import { Wishlist } from './components/wishlist';
@@ -27,12 +28,13 @@ export const routes = [
   { path: '/collections', page: 'collections', label: 'Collections' },
   { path: '/wishlist', page: 'wishlist', label: 'Wishlist' },
   { path: '/cart', page: 'cart', label: 'Cart' },
+  { path: '/dashboard', page: 'dashboard', label: 'My Dashboard' },
   { path: '/fit-intelligence', page: 'fit', label: 'Fit Intelligence' },
   { path: '/admin', page: 'admin', label: 'Admin Dashboard', protected: true },
   { path: '/admin-login', page: 'admin-login', label: 'Admin Login' },
 ] as const;
 
-type PageType = 'home' | 'products' | 'product' | 'fit' | 'cart' | 'wishlist' | 'admin-login' | 'admin' | 'collections';
+type PageType = 'home' | 'products' | 'product' | 'fit' | 'cart' | 'wishlist' | 'dashboard' | 'admin-login' | 'admin' | 'collections';
 
 // Helper function to get current route from URL hash
 function getRouteFromHash(): { page: PageType; filter?: { type: string; value: string } } {
@@ -350,6 +352,10 @@ function AppContent() {
 
       {currentPage === 'wishlist' && currentUser && (
         <Wishlist onBack={() => navigateTo('/products')} />
+      )}
+
+      {currentPage === 'dashboard' && currentUser && (
+        <UserDashboard onBack={() => navigateTo('/')} />
       )}
 
       {/* Quick View Modal */}

@@ -83,6 +83,15 @@ export function Header({ onLogout, onSearch, onWishlist, onCart, onProducts, onN
                       <button 
                         onClick={() => {
                           setShowUserMenu(false);
+                          navigateTo('/dashboard');
+                        }}
+                        className="w-full px-4 py-2 text-left text-[13px] text-[var(--charcoal)] hover:bg-gray-50 flex items-center gap-2"
+                      >
+                        <User size={16} /> My Dashboard
+                      </button>
+                      <button 
+                        onClick={() => {
+                          setShowUserMenu(false);
                           onLogout?.();
                         }}
                         className="w-full px-4 py-2 text-left text-[13px] text-red-600 hover:bg-gray-50 flex items-center gap-2 border-t border-gray-200"

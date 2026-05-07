@@ -31,7 +31,7 @@ interface AdminDashboardProps {
   onBack: () => void;
 }
 
-type TabType = 'overview' | 'users' | 'orders' | 'products' | 'stock' | 'returns' | 'packaging' | 'navigation' | 'analytics';
+type TabType = 'overview' | 'users' | 'orders' | 'products' | 'stock' | 'returns' | 'return-policy' | 'packaging' | 'navigation' | 'analytics';
 
 // Modal Component
 function Modal({ isOpen, onClose, title, children }: { isOpen: boolean; onClose: () => void; title: string; children: React.ReactNode }) {
@@ -282,12 +282,99 @@ function StockManagement({ products }: { products: Product[] }) {
   );
 }
 
+// Return Policy Settings Component
+function ReturnPolicySettings({ 
+  returnPolicyDays, 
+  onSave 
+}: { 
+  returnPolicyDays: number; 
+  onSave: (days: number) => void;
+}) {
+  const [policyDays, setPolicyDays] = useState(returnPolicyDays);
+  const [isSaved, setIsSaved] = useState(false);
+
+  const handleSave = () => {
+    onSave(policyDays);
+    setIsSaved(true);
+    setTimeout(() => setIsSaved(false), 3000);
+  };
+
+  return (
+    <div className="bg-white border border-gray-200 rounded-lg p-6 space-y-6">
+      <h2 className="font-[var(--font-serif)] text-[20px] text-[var(--charcoal)]">Return Policy Settings</h2>
+      
+      <div className="space-y-4">
+        <div>
+          <label className="block text-[14px] font-medium text-gray-700 mb-2">
+            Return Window (Days)
+          </label>
+          <div className="flex items-center gap-4">
+            <input
+              type="number"
+              min="1"
+              max="365"
+              value={policyDays}
+              onChange={(e) => setPolicyDays(Math.max(1, parseInt(e.target.value) || 30))}
+              className="px-4 py-2 border border-gray-200 rounded-lg text-[14px] w-24"
+            />
+            <span className="text-[14px] text-gray-600">days from delivery</span>
+          </div>
+          <p className="text-[12px] text-gray-500 mt-2">
+            Customers can request returns within this period from when their order is delivered.
+          </p>
+        </div>
+
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <p className="text-[13px] text-blue-800">
+            <strong>Current Policy:</strong> Customers have {policyDays} days to request a return from delivery date.
+          </p>
+        </div>
+
+        <div>
+          <button
+            onClick={handleSave}
+            className="px-6 py-2 bg-[var(--charcoal)] text-white rounded-lg font-medium text-[14px] hover:bg-gray-800 transition flex items-center gap-2"
+          >
+            <Save size={16} />
+            Save Policy
+          </button>
+          {isSaved && (
+            <p className="text-[12px] text-green-600 mt-2">✓ Return policy updated successfully</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Returns Management Component
-function ReturnsManagement({ orders }: { orders: Order[] }) {
-  const [returns, setReturns] = useState<any[]>([
-    { id: '1', orderId: orders[0]?.id, reason: 'Size mismatch', status: 'initiated', refundAmount: 2999 },
-  ].filter(r => r.orderId));
-  const [showReturnModal, setShowReturnModal] = useState(false);
+function ReturnsManagement({ 
+  orders, 
+  returns,
+  onUpdateReturnStatus,
+  isOrderReturnable,
+  getReturnDeadline
+}: { 
+  orders: Order[]; 
+  returns: any[];
+  onUpdateReturnStatus: (returnId: string, status: string, adminNotes?: string) => void;
+  isOrderReturnable: (orderId: string) => boolean;
+  getReturnDeadline: (orderDate: string) => Date;
+}) {
+  const [selectedReturn, setSelectedReturn] = useState<any>(null);
+  const [adminNotes, setAdminNotes] = useState('');
+  const [showModal, setShowModal] = useState(false);
+
+  const getOrderNumber = (orderId: string) => {
+    return orders.find(o => o.id === orderId)?.orderNumber || orderId;
+  };
+
+  const handleStatusChange = (returnId: string, newStatus: string) => {
+    onUpdateReturnStatus(returnId, newStatus, adminNotes);
+    setShowModal(false);
+    setAdminNotes('');
+    setSelectedReturn(null);
+  };
 
   return (
     <div className="space-y-6">
@@ -295,39 +382,115 @@ function ReturnsManagement({ orders }: { orders: Order[] }) {
         <h2 className="font-[var(--font-serif)] text-[20px] text-[var(--charcoal)]">Returns Management</h2>
       </div>
 
-      <div className="bg-white border border-gray-200 overflow-x-auto">
-        <table className="w-full">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-[12px] font-medium text-gray-500 uppercase">Return ID</th>
-              <th className="px-6 py-3 text-left text-[12px] font-medium text-gray-500 uppercase">Order</th>
-              <th className="px-6 py-3 text-left text-[12px] font-medium text-gray-500 uppercase">Reason</th>
-              <th className="px-6 py-3 text-left text-[12px] font-medium text-gray-500 uppercase">Status</th>
-              <th className="px-6 py-3 text-left text-[12px] font-medium text-gray-500 uppercase">Refund</th>
-              <th className="px-6 py-3 text-left text-[12px] font-medium text-gray-500 uppercase">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200">
-            {returns.map((ret) => (
-              <tr key={ret.id}>
-                <td className="px-6 py-4 text-[14px] font-medium">{ret.id}</td>
-                <td className="px-6 py-4 text-[14px]">{ret.orderId}</td>
-                <td className="px-6 py-4 text-[14px]">{ret.reason}</td>
-                <td className="px-6 py-4">
-                  <span className={`inline-flex items-center px-2 py-1 text-[12px] font-medium rounded ${ret.status === 'approved' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
-                    {ret.status}
-                  </span>
-                </td>
-                <td className="px-6 py-4 text-[14px] font-medium">₹{ret.refundAmount}</td>
-                <td className="px-6 py-4 text-[14px]">
-                  <select defaultValue={ret.status} onChange={(e) => {
-                    const updated = returns.map(r => r.id === ret.id ? { ...r, status: e.target.value } : r);
-                    setReturns(updated);
-                  }} className="px-2 py-1 border border-gray-200 text-[12px]">
-                    <option value="initiated">Initiated</option>
-                    <option value="approved">Approved</option>
-                    <option value="processing">Processing</option>
-                    <option value="refunded">Refunded</option>
+      {returns.length === 0 ? (
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center">
+          <RotateCw size={32} className="mx-auto text-gray-400 mb-2" />
+          <p className="text-[14px] text-gray-600">No return requests yet</p>
+        </div>
+      ) : (
+        <div className="bg-white border border-gray-200 overflow-x-auto rounded-lg">
+          <table className="w-full">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-[12px] font-medium text-gray-500 uppercase">Return ID</th>
+                <th className="px-6 py-3 text-left text-[12px] font-medium text-gray-500 uppercase">Order ID</th>
+                <th className="px-6 py-3 text-left text-[12px] font-medium text-gray-500 uppercase">Reason</th>
+                <th className="px-6 py-3 text-left text-[12px] font-medium text-gray-500 uppercase">Status</th>
+                <th className="px-6 py-3 text-left text-[12px] font-medium text-gray-500 uppercase">Requested</th>
+                <th className="px-6 py-3 text-left text-[12px] font-medium text-gray-500 uppercase">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {returns.map((ret) => (
+                <tr key={ret.id}>
+                  <td className="px-6 py-4 text-[14px] font-medium">{ret.id}</td>
+                  <td className="px-6 py-4 text-[14px]">{getOrderNumber(ret.orderId)}</td>
+                  <td className="px-6 py-4 text-[14px]">{ret.reason}</td>
+                  <td className="px-6 py-4">
+                    <span className={`inline-flex items-center px-2 py-1 text-[12px] font-medium rounded ${
+                      ret.status === 'approved' ? 'bg-green-100 text-green-800' :
+                      ret.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                      ret.status === 'completed' ? 'bg-blue-100 text-blue-800' :
+                      'bg-yellow-100 text-yellow-800'
+                    }`}>
+                      {ret.status}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-[12px] text-gray-500">
+                    {new Date(ret.requestedAt).toLocaleDateString()}
+                  </td>
+                  <td className="px-6 py-4 text-[14px]">
+                    <button
+                      onClick={() => {
+                        setSelectedReturn(ret);
+                        setShowModal(true);
+                      }}
+                      className="text-blue-600 hover:text-blue-800 font-medium text-[12px]"
+                    >
+                      Manage
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <Modal 
+        isOpen={showModal}
+        onClose={() => {
+          setShowModal(false);
+          setSelectedReturn(null);
+          setAdminNotes('');
+        }}
+        title="Manage Return Request"
+      >
+        {selectedReturn && (
+          <div className="space-y-4">
+            <div>
+              <label className="text-[13px] font-medium text-gray-700">Return ID</label>
+              <p className="text-[14px] text-gray-900">{selectedReturn.id}</p>
+            </div>
+            <div>
+              <label className="text-[13px] font-medium text-gray-700">Reason</label>
+              <p className="text-[14px] text-gray-900">{selectedReturn.reason}</p>
+            </div>
+            <div>
+              <label className="text-[13px] font-medium text-gray-700 block mb-2">Status</label>
+              <select 
+                value={selectedReturn.status}
+                onChange={(e) => setSelectedReturn({...selectedReturn, status: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-[14px]"
+              >
+                <option value="requested">Requested</option>
+                <option value="approved">Approved</option>
+                <option value="rejected">Rejected</option>
+                <option value="shipped">Shipped</option>
+                <option value="completed">Completed</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-[13px] font-medium text-gray-700 block mb-2">Admin Notes</label>
+              <textarea 
+                value={adminNotes}
+                onChange={(e) => setAdminNotes(e.target.value)}
+                placeholder="Add notes about this return..."
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-[14px]"
+                rows={4}
+              />
+            </div>
+            <button
+              onClick={() => handleStatusChange(selectedReturn.id, selectedReturn.status)}
+              className="w-full px-4 py-2 bg-[var(--charcoal)] text-white rounded-lg font-medium text-[14px] hover:bg-gray-800"
+            >
+              Update Return Status
+            </button>
+          </div>
+        )}
+      </Modal>
+    </div>
+  );
                   </select>
                 </td>
               </tr>
@@ -557,7 +720,16 @@ export function AdminDashboardEnhanced({ onBack }: AdminDashboardProps) {
     updateOrderStatus,
     addProduct, updateProduct, deleteProduct,
     addUser, updateUser, deleteUser,
-    deleteOrder
+    deleteOrder,
+    // Return management
+    returns: storeReturns,
+    adminSettings,
+    setReturnPolicy,
+    getReturnPolicy,
+    getAllReturns,
+    updateReturnStatus,
+    isOrderReturnable,
+    getReturnDeadline,
   } = useAppStore();
 
   const [activeTab, setActiveTab] = useState<TabType>('overview');
@@ -681,6 +853,7 @@ export function AdminDashboardEnhanced({ onBack }: AdminDashboardProps) {
     { id: 'stock' as TabType, label: 'Stock', icon: Truck },
     { id: 'packaging' as TabType, label: 'Packaging', icon: Tag },
     { id: 'returns' as TabType, label: 'Returns', icon: RotateCw },
+    { id: 'return-policy' as TabType, label: 'Return Policy', icon: Settings },
     { id: 'navigation' as TabType, label: 'Navigation', icon: Settings },
     { id: 'analytics' as TabType, label: 'Analytics', icon: TrendingUp }
   ];
@@ -918,7 +1091,23 @@ export function AdminDashboardEnhanced({ onBack }: AdminDashboardProps) {
         {activeTab === 'packaging' && <PackagingManager />}
 
         {/* Returns Tab */}
-        {activeTab === 'returns' && <ReturnsManagement orders={orders} />}
+        {activeTab === 'returns' && (
+          <ReturnsManagement 
+            orders={orders}
+            returns={getAllReturns()}
+            onUpdateReturnStatus={updateReturnStatus}
+            isOrderReturnable={isOrderReturnable}
+            getReturnDeadline={getReturnDeadline}
+          />
+        )}
+
+        {/* Return Policy Tab */}
+        {activeTab === 'return-policy' && (
+          <ReturnPolicySettings 
+            returnPolicyDays={adminSettings.returnPolicyDays}
+            onSave={setReturnPolicy}
+          />
+        )}
 
         {/* Navigation Tab */}
         {activeTab === 'navigation' && <NavigationControl />}

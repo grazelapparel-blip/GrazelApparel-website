@@ -73,12 +73,31 @@ export interface FitProfile {
   createdAt?: string;
 }
 
+export interface Return {
+  id: string;
+  orderId: string;
+  userId: string;
+  reason: string;
+  status: 'requested' | 'approved' | 'rejected' | 'shipped' | 'completed';
+  requestedAt: string;
+  approvedAt?: string;
+  completedAt?: string;
+  adminNotes?: string;
+  createdAt: string;
+}
+
+export interface AdminSettings {
+  returnPolicyDays: number;
+}
+
 interface AppState {
   users: User[];
   orders: Order[];
   cartItems: CartItem[];
   products: Product[];
   fitProfiles: FitProfile[];
+  returns: Return[];
+  adminSettings: AdminSettings;
   favorites: Product[]; // Array of favorite/liked products
   currentUser: User | null;
   isAdmin: boolean;
@@ -117,12 +136,22 @@ interface AppContextType extends AppState {
   updateUser: (id: string, user: Partial<User>) => void;
   deleteUser: (id: string) => void;
   deleteOrder: (id: string) => void;
+  // Return management operations
+  setReturnPolicy: (days: number) => void;
+  getReturnPolicy: () => number;
+  requestReturn: (orderId: string, reason: string) => void;
+  getUserReturns: (userId: string) => Return[];
+  getAllReturns: () => Return[];
+  updateReturnStatus: (returnId: string, status: Return['status'], adminNotes?: string) => void;
+  isOrderReturnable: (orderId: string) => boolean;
+  getReturnDeadline: (orderDate: string) => Date;
 }
 
 // Mock data
 const mockUsers: User[] = [];
 
 const mockProducts: Product[] = [];
+const mockReturns: Return[] = [];
 
 const mockOrders: Order[] = [];
 
@@ -152,6 +181,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
   });
   const [isAdmin, setIsAdmin] = useState(false);
   const [supabaseConnected, setSupabaseConnected] = useState(true);
+  const [returns, setReturns] = useState<Return[]>(mockReturns);
+  const [adminSettings, setAdminSettings] = useState<AdminSettings>({
+    returnPolicyDays: 30, // Default return policy: 30 days
+  });
 
   // Set up Supabase auth listener on mount
   useEffect(() => {
@@ -874,6 +907,72 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setOrders(prev => prev.filter(order => order.id !== id));
   };
 
+  // Return Management Operations
+  const setReturnPolicy = (days: number) => {
+    setAdminSettings(prev => ({
+      ...prev,
+      returnPolicyDays: days,
+    }));
+  };
+
+  const getReturnPolicy = () => adminSettings.returnPolicyDays;
+
+  const getReturnDeadline = (orderDate: string): Date => {
+    const date = new Date(orderDate);
+    date.setDate(date.getDate() + adminSettings.returnPolicyDays);
+    return date;
+  };
+
+  const isOrderReturnable = (orderId: string): boolean => {
+    const order = orders.find(o => o.id === orderId);
+    if (!order) return false;
+
+    const returnDeadline = getReturnDeadline(order.createdAt);
+    const now = new Date();
+    return now <= returnDeadline && order.status === 'delivered';
+  };
+
+  const requestReturn = (orderId: string, reason: string) => {
+    if (!currentUser || !isOrderReturnable(orderId)) return;
+
+    const newReturn: Return = {
+      id: `ret_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      orderId,
+      userId: currentUser.id,
+      reason,
+      status: 'requested',
+      requestedAt: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+    };
+
+    setReturns(prev => [...prev, newReturn]);
+  };
+
+  const getUserReturns = (userId: string): Return[] => {
+    return returns.filter(r => r.userId === userId);
+  };
+
+  const getAllReturns = (): Return[] => {
+    return returns;
+  };
+
+  const updateReturnStatus = (returnId: string, status: Return['status'], adminNotes?: string) => {
+    setReturns(prev =>
+      prev.map(ret =>
+        ret.id === returnId
+          ? {
+              ...ret,
+              status,
+              adminNotes,
+              approvedAt: status === 'approved' ? new Date().toISOString() : ret.approvedAt,
+              completedAt: status === 'completed' ? new Date().toISOString() : ret.completedAt,
+              updated_at: new Date().toISOString(),
+            }
+          : ret
+      )
+    );
+  };
+
   // Fit Profile Operations
   const getFitProfiles = async () => {
     try {
@@ -1000,6 +1099,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         cartItems,
         products,
         fitProfiles,
+        returns,
+        adminSettings,
         favorites,
         currentUser,
         isAdmin,
@@ -1034,7 +1135,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
         addUser,
         updateUser,
         deleteUser,
-        deleteOrder
+        deleteOrder,
+        // Return management
+        setReturnPolicy,
+        getReturnPolicy,
+        requestReturn,
+        getUserReturns,
+        getAllReturns,
+        updateReturnStatus,
+        isOrderReturnable,
+        getReturnDeadline,
       }}
     >
       {children}
