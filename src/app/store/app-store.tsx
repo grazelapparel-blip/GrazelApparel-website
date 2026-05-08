@@ -149,13 +149,165 @@ interface AppContextType extends AppState {
   getOrderReturnDays: (orderId: string) => number;
 }
 
-// Mock data
-const mockUsers: User[] = [];
+// Mock data - Sample data for demonstration
+// NOTE: When Supabase is not configured, the app uses this mock data to display in the admin dashboard
+// To use real Supabase data, create a .env.local file with VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY
 
-const mockProducts: Product[] = [];
-const mockReturns: Return[] = [];
+const mockUsers: User[] = [
+  {
+    id: 'user-001',
+    name: 'Sarah Johnson',
+    email: 'sarah@example.com',
+    phone: '+91 9876543210',
+    joinedDate: '2025-01-15'
+  },
+  {
+    id: 'user-002',
+    name: 'Rajesh Patel',
+    email: 'rajesh@example.com',
+    phone: '+91 9123456789',
+    joinedDate: '2025-02-20'
+  },
+  {
+    id: 'user-003',
+    name: 'Priya Singh',
+    email: 'priya@example.com',
+    phone: '+91 8765432109',
+    joinedDate: '2025-03-10'
+  }
+];
 
-const mockOrders: Order[] = [];
+const mockProducts: Product[] = [
+  {
+    id: 'prod-001',
+    name: 'Premium Cotton Shirt',
+    price: 2999,
+    image: 'https://images.unsplash.com/photo-1598762536906-adaf9e55d75a?w=400',
+    fabric: 'Cotton',
+    fit: 'Regular',
+    category: 'Shirts',
+    size: ['S', 'M', 'L', 'XL'],
+    gender: 'Men',
+    isEssential: true,
+    createdAt: '2025-01-10'
+  },
+  {
+    id: 'prod-002',
+    name: 'Silk Evening Dress',
+    price: 5999,
+    image: 'https://images.unsplash.com/photo-1595777707802-21b258789dc4?w=400',
+    fabric: 'Silk',
+    fit: 'Slim',
+    category: 'Dresses',
+    size: ['XS', 'S', 'M', 'L'],
+    gender: 'Women',
+    createdAt: '2025-01-15'
+  },
+  {
+    id: 'prod-003',
+    name: 'Classic Trousers',
+    price: 3499,
+    image: 'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=400',
+    fabric: 'Cotton Blend',
+    fit: 'Regular',
+    category: 'Trousers',
+    size: ['28', '30', '32', '34', '36'],
+    gender: 'Men',
+    isEssential: true,
+    createdAt: '2025-01-20'
+  }
+];
+
+const mockReturns: Return[] = [
+  {
+    id: 'ret-001',
+    orderId: 'order-001',
+    userId: 'user-001',
+    reason: 'Size does not fit',
+    status: 'approved',
+    requestedAt: '2025-03-01',
+    approvedAt: '2025-03-02',
+    createdAt: '2025-03-01'
+  }
+];
+
+const mockOrders: Order[] = [
+  {
+    id: 'order-001',
+    userId: 'user-001',
+    items: [
+      {
+        id: 'prod-001',
+        name: 'Premium Cotton Shirt',
+        price: 2999,
+        image: 'https://images.unsplash.com/photo-1598762536906-adaf9e55d75a?w=400',
+        fabric: 'Cotton',
+        fit: 'Regular',
+        quantity: 1,
+        selectedSize: 'M'
+      }
+    ],
+    total: 3499,
+    status: 'shipped',
+    createdAt: '2025-03-05',
+    shippingAddress: {
+      street: '123 Main Street',
+      city: 'Mumbai',
+      postcode: '400001',
+      country: 'India'
+    }
+  },
+  {
+    id: 'order-002',
+    userId: 'user-002',
+    items: [
+      {
+        id: 'prod-002',
+        name: 'Silk Evening Dress',
+        price: 5999,
+        image: 'https://images.unsplash.com/photo-1595777707802-21b258789dc4?w=400',
+        fabric: 'Silk',
+        fit: 'Slim',
+        quantity: 1,
+        selectedSize: 'S'
+      }
+    ],
+    total: 6799,
+    status: 'delivered',
+    createdAt: '2025-02-28',
+    shippingAddress: {
+      street: '456 Oak Avenue',
+      city: 'Bangalore',
+      postcode: '560001',
+      country: 'India'
+    }
+  },
+  {
+    id: 'order-003',
+    userId: 'user-003',
+    items: [
+      {
+        id: 'prod-003',
+        name: 'Classic Trousers',
+        price: 3499,
+        image: 'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=400',
+        fabric: 'Cotton Blend',
+        fit: 'Regular',
+        quantity: 2,
+        selectedSize: '32'
+      }
+    ],
+    total: 7999,
+    status: 'processing',
+    createdAt: '2025-03-08',
+    shippingAddress: {
+      street: '789 Elm Street',
+      city: 'Delhi',
+      postcode: '110001',
+      country: 'India'
+    }
+  }
+];
 
 const mockFitProfiles: FitProfile[] = [];
 
