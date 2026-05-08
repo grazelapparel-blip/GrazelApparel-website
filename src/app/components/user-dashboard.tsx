@@ -45,6 +45,17 @@ export function UserDashboard({ onBack }: UserDashboardProps) {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [returnReason, setReturnReason] = useState('');
 
+  // Common return reasons
+  const commonReturnReasons = [
+    'Size does not fit',
+    'Wrong item received',
+    'Quality issues',
+    'Changed my mind',
+    'Item damaged in transit',
+    'Color not as expected',
+    'Other'
+  ];
+
   if (!currentUser) {
     return (
       <div className="min-h-screen bg-[var(--cream)] flex items-center justify-center">
@@ -270,48 +281,55 @@ export function UserDashboard({ onBack }: UserDashboardProps) {
                       </div>
                     </div>
 
-                    {/* Return Information */}
-                    <div className="px-6 py-4">
-                      {isReturnable && !hasActiveReturn && (
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                          <div className="flex gap-3">
-                            <AlertCircle size={18} className="text-blue-600 flex-shrink-0 mt-0.5" />
-                            <div className="text-[13px] text-blue-800">
-                              <p className="font-medium mb-1">This order is returnable</p>
-                              <p className="mb-3">
-                                Return deadline: {returnDeadline?.toLocaleDateString()} ({orderReturnDays} days from delivery)
-                              </p>
-                              <button
-                                onClick={() => {
-                                  setSelectedOrder(order);
-                                  setReturnReason('');
-                                  setShowReturnModal(true);
-                                }}
-                                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium text-[12px] hover:bg-blue-700 transition"
-                              >
-                                <RotateCw size={14} />
-                                Request Return
-                              </button>
+                    {/* Return Information & Action Buttons */}
+                    <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
+                      <div className="space-y-4">
+                        {isReturnable && !hasActiveReturn && (
+                          <>
+                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                              <div className="flex gap-3">
+                                <AlertCircle size={18} className="text-blue-600 flex-shrink-0 mt-0.5" />
+                                <div className="text-[13px] text-blue-800">
+                                  <p className="font-medium mb-2">✓ Eligible for Return</p>
+                                  <p className="mb-3 text-[12px]">
+                                    Deadline: <span className="font-semibold">{returnDeadline?.toLocaleDateString()}</span> ({orderReturnDays} days remaining)
+                                  </p>
+                                </div>
+                              </div>
                             </div>
+                            <button
+                              onClick={() => {
+                                setSelectedOrder(order);
+                                setReturnReason('');
+                                setShowReturnModal(true);
+                              }}
+                              className="w-full px-4 py-3 bg-[var(--crimson)] text-white rounded-lg font-medium text-[14px] hover:opacity-90 transition flex items-center justify-center gap-2"
+                            >
+                              <RotateCw size={16} />
+                              Request Return
+                            </button>
+                          </>
+                        )}
+
+                        {!isReturnable && !hasActiveReturn && order.status === 'delivered' && (
+                          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                            <p className="text-[12px] text-red-800">
+                              <strong>Return period expired.</strong> Contact support if you believe this is an error.
+                            </p>
                           </div>
-                        </div>
-                      )}
+                        )}
 
-                      {!isReturnable && !hasActiveReturn && order.status === 'delivered' && (
-                        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                          <p className="text-[12px] text-gray-600">
-                            Return period has expired. Contact support for further assistance.
-                          </p>
-                        </div>
-                      )}
-
-                      {hasActiveReturn && (
-                        <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                          <p className="text-[12px] text-purple-800">
-                            <strong>Return Status:</strong> Your return request is being processed.
-                          </p>
-                        </div>
-                      )}
+                        {hasActiveReturn && (
+                          <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                            <p className="text-[12px] text-purple-800 mb-2">
+                              <strong>Return Status:</strong> {returnStatus?.charAt(0).toUpperCase() + returnStatus?.slice(1)}
+                            </p>
+                            <p className="text-[11px] text-purple-700">
+                              View details in the <button onClick={() => setActiveTab('returns')} className="underline font-semibold hover:no-underline">Returns tab</button>
+                            </p>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 );
@@ -390,7 +408,7 @@ export function UserDashboard({ onBack }: UserDashboardProps) {
         title="Request Return"
       >
         {selectedOrder && (
-          <div className="space-y-4">
+          <div className="space-y-5">
             <div>
               <label className="text-[12px] font-medium text-gray-700 block mb-2">
                 Order Details
@@ -402,13 +420,32 @@ export function UserDashboard({ onBack }: UserDashboardProps) {
             </div>
 
             <div>
-              <label className="text-[12px] font-medium text-gray-700 block mb-2">
+              <label className="text-[12px] font-medium text-gray-700 block mb-3">
                 Return Reason *
               </label>
+              
+              {/* Quick Select Buttons */}
+              <div className="grid grid-cols-2 gap-2 mb-3">
+                {commonReturnReasons.map((reason) => (
+                  <button
+                    key={reason}
+                    onClick={() => setReturnReason(reason)}
+                    className={`px-3 py-2 text-[12px] font-medium rounded-lg transition border ${
+                      returnReason === reason
+                        ? 'bg-[var(--charcoal)] text-white border-[var(--charcoal)]'
+                        : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    {reason}
+                  </button>
+                ))}
+              </div>
+
+              {/* Additional Details Textarea */}
               <textarea
                 value={returnReason}
                 onChange={(e) => setReturnReason(e.target.value)}
-                placeholder="Please explain why you want to return this order..."
+                placeholder="Or add more details about your return..."
                 className="w-full px-4 py-3 border border-gray-200 rounded-lg text-[14px] focus:outline-none focus:ring-2 focus:ring-[var(--charcoal)] focus:border-transparent"
                 rows={4}
               />
@@ -416,13 +453,14 @@ export function UserDashboard({ onBack }: UserDashboardProps) {
 
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
               <p className="text-[12px] text-blue-800">
-                <strong>Return Policy:</strong> You have {getReturnPolicy()} days from delivery to request a return.
+                <strong>Return Policy:</strong> You have <strong>{getReturnPolicy()} days</strong> from delivery to request a return.
               </p>
             </div>
 
             <button
               onClick={handleRequestReturn}
-              className="w-full px-4 py-3 bg-[var(--charcoal)] text-white rounded-lg font-medium text-[14px] hover:bg-gray-800 transition flex items-center justify-center gap-2"
+              disabled={!returnReason.trim()}
+              className="w-full px-4 py-3 bg-[var(--crimson)] text-white rounded-lg font-medium text-[14px] hover:opacity-90 transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Send size={16} />
               Submit Return Request
