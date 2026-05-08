@@ -49,6 +49,8 @@ export interface Order {
   userId: string;
   items: CartItem[];
   total: number;
+  subtotal: number;
+  tax_amount: number;
   status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
   createdAt: string;
   shippingAddress: {
@@ -248,6 +250,8 @@ const mockOrders: Order[] = [
       }
     ],
     total: 3499,
+    subtotal: 2999,
+    tax_amount: 500,
     status: 'shipped',
     createdAt: '2025-03-05',
     shippingAddress: {
@@ -273,6 +277,8 @@ const mockOrders: Order[] = [
       }
     ],
     total: 6799,
+    subtotal: 5999,
+    tax_amount: 800,
     status: 'delivered',
     createdAt: '2025-02-28',
     shippingAddress: {
@@ -298,6 +304,8 @@ const mockOrders: Order[] = [
       }
     ],
     total: 7999,
+    subtotal: 6998,
+    tax_amount: 1001,
     status: 'processing',
     createdAt: '2025-03-08',
     shippingAddress: {
@@ -407,6 +415,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       localStorage.setItem(cartKey, JSON.stringify(userCartItems));
     }
   }, [cartItems, currentUser]);
+
+  // Persist returns to localStorage when they change
+  useEffect(() => {
+    const returnsKey = 'app_returns';
+    localStorage.setItem(returnsKey, JSON.stringify(returns));
+  }, [returns]);
 
   // Fetch products from Supabase on mount and set up real-time listener
   useEffect(() => {

@@ -242,10 +242,10 @@ function StockManagement({ products }: { products: Product[] }) {
                 return (
                   <tr key={product.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 text-[14px]">{product.name}</td>
-                    <td className="px-6 py-4"><input type="number" value={stockForm.available} onChange={(e) => setStockForm({ ...stockForm, available: e.target.value })} className="w-20 px-2 py-1 border border-gray-200 text-[13px]" /></td>
-                    <td className="px-6 py-4"><input type="number" value={stockForm.reserved} onChange={(e) => setStockForm({ ...stockForm, reserved: e.target.value })} className="w-20 px-2 py-1 border border-gray-200 text-[13px]" /></td>
-                    <td className="px-6 py-4"><input type="number" value={stockForm.sold} onChange={(e) => setStockForm({ ...stockForm, sold: e.target.value })} className="w-20 px-2 py-1 border border-gray-200 text-[13px]" /></td>
-                    <td className="px-6 py-4" colSpan={2} className="space-x-2">
+                    <td className="px-6 py-4"><input type="number" min="0" value={stockForm.available} onChange={(e) => setStockForm({ ...stockForm, available: e.target.value })} className="w-20 px-2 py-1 border border-gray-200 text-[13px]" /></td>
+                    <td className="px-6 py-4"><input type="number" min="0" value={stockForm.reserved} onChange={(e) => setStockForm({ ...stockForm, reserved: e.target.value })} className="w-20 px-2 py-1 border border-gray-200 text-[13px]" /></td>
+                    <td className="px-6 py-4"><input type="number" min="0" value={stockForm.sold} onChange={(e) => setStockForm({ ...stockForm, sold: e.target.value })} className="w-20 px-2 py-1 border border-gray-200 text-[13px]" /></td>
+                    <td className="px-6 py-4 space-x-2" colSpan={2}>
                       <button onClick={() => handleSaveStock(product.id)} className="px-3 py-1 bg-green-600 text-white text-[12px] hover:bg-green-700">Save</button>
                       <button onClick={() => setEditingStock(null)} className="px-3 py-1 bg-gray-300 text-gray-800 text-[12px] hover:bg-gray-400">Cancel</button>
                     </td>
@@ -366,7 +366,7 @@ function ReturnsManagement({
   const [showModal, setShowModal] = useState(false);
 
   const getOrderNumber = (orderId: string) => {
-    return orders.find(o => o.id === orderId)?.orderNumber || orderId;
+    return orders.find(o => o.id === orderId)?.id || orderId;
   };
 
   const handleStatusChange = (returnId: string, newStatus: string) => {
@@ -1016,9 +1016,9 @@ export function AdminDashboardEnhanced({ onBack }: AdminDashboardProps) {
                             onChange={(e) => updateOrderStatus(order.id, e.target.value as any)}
                             className="px-2 py-1 border border-gray-200 text-[12px] rounded"
                           >
-                            <option value="ordered">Ordered</option>
-                            <option value="acknowledged">Acknowledged</option>
-                            <option value="shipping">Shipping</option>
+                            <option value="pending">Pending</option>
+                            <option value="processing">Processing</option>
+                            <option value="shipped">Shipped</option>
                             <option value="delivered">Delivered</option>
                             <option value="cancelled">Cancelled</option>
                           </select>
@@ -1123,7 +1123,7 @@ export function AdminDashboardEnhanced({ onBack }: AdminDashboardProps) {
             <input type="number" min="1" max="365" placeholder="Return days (e.g., 30)" value={productForm.returnDays} onChange={(e) => setProductForm({ ...productForm, returnDays: e.target.value })} className="w-full px-4 py-2 border border-gray-200 text-[14px]" />
             <p className="text-[11px] text-gray-500 mt-1">How many days customers have to return this product (default: 30)</p>
           </div>
-          <input type="text" placeholder="Sizes (comma separated)" value={productForm.size} onChange={(e) => setProductForm({ ...productForm, size: e.target.value })} className="w-full px-4 py-2 border border-gray-200 text[14px]" />
+          <input type="text" placeholder="Sizes (comma separated)" value={productForm.size} onChange={(e) => setProductForm({ ...productForm, size: e.target.value })} className="w-full px-4 py-2 border border-gray-200 text-[14px]" />
           <button onClick={handleSaveProduct} className="w-full px-4 py-2 bg-[var(--crimson)] text-white text-[14px] hover:opacity-90">Save Product</button>
         </div>
       </Modal>

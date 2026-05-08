@@ -91,7 +91,7 @@ export function UserDashboard({ onBack }: UserDashboardProps) {
 
   const getProductImage = (productId: string) => {
     const product = products.find(p => p.id === productId);
-    return product?.image || '';
+    return product?.image || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400&q=80';
   };
 
   const getReturnStatus = (orderId: string) => {
@@ -255,7 +255,7 @@ export function UserDashboard({ onBack }: UserDashboardProps) {
                                 Size: {item.selectedSize} | Qty: {item.quantity}
                               </p>
                               <p className="text-[13px] font-medium text-[var(--charcoal)] mt-1">
-                                £{(item.price * item.quantity).toFixed(2)}
+                                ₹{(item.price * item.quantity).toFixed(0)}
                               </p>
                             </div>
                           </div>
@@ -268,15 +268,15 @@ export function UserDashboard({ onBack }: UserDashboardProps) {
                       <div className="space-y-2 text-[13px]">
                         <div className="flex justify-between">
                           <span className="text-gray-600">Subtotal</span>
-                          <span className="text-[var(--charcoal)]">£{order.subtotal.toFixed(2)}</span>
+                          <span className="text-[var(--charcoal)]">₹{order.subtotal.toFixed(0)}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-gray-600">Shipping</span>
-                          <span className="text-[var(--charcoal)]">£{order.total - order.subtotal - order.tax_amount.toFixed(2)}</span>
+                          <span className="text-[var(--charcoal)]">₹{(order.total - order.subtotal - order.tax_amount).toFixed(0)}</span>
                         </div>
                         <div className="flex justify-between border-t border-gray-200 pt-2 font-medium">
                           <span className="text-gray-700">Total</span>
-                          <span className="text-[var(--charcoal)]">£{order.total.toFixed(2)}</span>
+                          <span className="text-[var(--charcoal)]">₹{order.total.toFixed(0)}</span>
                         </div>
                       </div>
                     </div>
@@ -415,7 +415,7 @@ export function UserDashboard({ onBack }: UserDashboardProps) {
               </label>
               <div className="bg-gray-50 p-3 rounded-lg text-[13px] text-gray-700">
                 <p className="font-medium">{selectedOrder.id}</p>
-                <p>{selectedOrder.items.length} item(s) - £{selectedOrder.total.toFixed(2)}</p>
+                <p>{selectedOrder.items.length} item(s) - ₹{selectedOrder.total.toFixed(0)}</p>
               </div>
             </div>
 
